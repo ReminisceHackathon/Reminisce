@@ -1,12 +1,13 @@
 import React from 'react';
 import Dashboard from './components/Dashboard';
+import ErrorBoundary from './components/ErrorBoundary';
 import './components/Dashboard.css';
 
 function App() {
   return (
-    <div className="App">
+    <ErrorBoundary>
       <Dashboard />
-    </div>
+    </ErrorBoundary>
   );
 }
 

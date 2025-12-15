@@ -1,16 +1,80 @@
-# React + Vite
+# Reminisce Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Voice-first memory aid application frontend built with React.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- ✅ ChatGPT-style UI (Chat interface + Sidebar)
+- ✅ ElevenLabs API integration for streaming audio
+- ✅ Microphone permissions and audio visualization
+- ✅ Accessibility features (large buttons, high contrast for seniors)
+- ✅ Voice recording and playback
+- ✅ Real-time audio visualization
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Install dependencies:
+```bash
+npm install
+```
 
-## Expanding the ESLint configuration
+2. Create a `.env` file in the root directory:
+```bash
+cp .env.example .env
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. Add your ElevenLabs API credentials to `.env`:
+```
+VITE_ELEVENLABS_API_KEY=your_api_key
+VITE_ELEVENLABS_VOICE_ID=your_voice_id
+```
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+## Environment Variables
+
+- `VITE_ELEVENLABS_API_KEY`: Your ElevenLabs API key
+- `VITE_ELEVENLABS_VOICE_ID`: Your custom voice ID (designed for seniors)
+- `VITE_API_URL`: Backend API URL (for Gemini/Vertex AI integration)
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── Dashboard.jsx          # Main dashboard component
+│   ├── Dashboard.css          # Dashboard styles
+│   ├── AudioVisualizer.jsx    # Audio visualization component
+│   └── AudioVisualizer.css    # Visualizer styles
+├── hooks/
+│   └── useMicrophone.js       # Microphone recording hook
+├── services/
+│   └── elevenLabsService.js   # ElevenLabs API service
+└── App.jsx                     # Root component
+```
+
+## Key Features for Seniors
+
+- **Large buttons**: Minimum 48px touch targets
+- **High contrast**: White background with dark text
+- **Large fonts**: 18px base font size
+- **Clear visual feedback**: Audio visualization when listening
+- **Voice-first**: Large microphone button for easy access
+
+## Integration with Backend
+
+The frontend is designed to work with a backend that:
+1. Receives audio blobs for transcription
+2. Processes requests with Gemini 1.5 Pro
+3. Returns text responses
+4. The frontend then converts responses to speech using ElevenLabs
+
+## Next Steps
+
+1. Connect to your backend API for Gemini integration
+2. Implement actual audio transcription (currently simulated)
+3. Add photo upload functionality for "Who is this?" feature
+4. Test with actual ElevenLabs voice designed for seniors

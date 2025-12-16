@@ -1,0 +1,15 @@
+# Reminisce AI Development Rules (Firebase Edition)
+
+1. **Stateless Logic:**
+   - Assume your AI service is stateless. Do not store conversation history in local variables.
+   - Always expect `recent_chat_history` to be passed into your functions as a list of strings or objects (retrieved from Firebase by the backend API).
+
+3. **Vertex AI & Gemini:**
+   - Use `Gemini 1.5 Pro` via Vertex AI.
+   - Ensure the System Prompt explicitly instructs the model to be "slow-paced and reassuring," as per the hackathon prompt requirements.
+
+4. **Async/Await is Mandatory:**
+   - The backend is FastAPI. All your RAG queries (Pinecone) and LLM calls (Vertex AI) must be `async def` to prevent blocking the server.
+
+5. **Type Hinting:**
+   - Use strict typing. Example: `async def process_turn(user_id: str, message: str, history: List[Dict[str, str]]) -> str:`

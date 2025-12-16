@@ -9,6 +9,7 @@ import os
 
 # --- Pinecone Configuration ---
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "pcsk_3jmj3o_JB9HKQRAqt1nBmXQHS8opFqacv8gGyHUhErmcgKsM3rntofKKZUk8M9VEEUDY22")
+# PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "pcsk_4gYLNW_9fJwMXp6se1z43W6WKGrs9zhBZArYvA2FWC6VbToyoU9SyPNW24QUvxXS8fo7Go")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "reminisce-memories")
 
 # --- Google Cloud Configuration ---
@@ -23,6 +24,7 @@ EMBEDDING_MODEL = "text-embedding-004"
 EMBEDDING_DIMENSION = 768  # text-embedding-004 output dimension
 
 # Gemini LLM Model
+# LLM_MODEL = "gemini-2.0-flash-001"
 LLM_MODEL = "gemini-1.5-pro"
 
 # =============================================================================

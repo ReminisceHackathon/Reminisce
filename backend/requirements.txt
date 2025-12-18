@@ -1,0 +1,16 @@
+# FastAPI and server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Google Cloud
+google-cloud-speech>=2.19.0
+google-cloud-firestore>=2.13.0  # Optional, for Firebase
+firebase-admin>=6.2.0  # Optional, for Firebase
+
+# AI Service (local package)
+# We'll install it with: pip install -e ../ai_service
+
+# Environment variables
+python-dotenv>=1.0.0
+

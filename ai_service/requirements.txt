@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt
 
 # Pinecone vector database client
-pinecone-client>=3.0.0
+pinecone>=6.0.0
 
 # LangChain with Google Vertex AI integration
 langchain-google-vertexai>=1.0.0
@@ -13,3 +13,4 @@ google-cloud-aiplatform>=1.38.0
 # Vertex AI SDK
 vertexai>=1.0.0
 
+python-dotenv>=1.0.0

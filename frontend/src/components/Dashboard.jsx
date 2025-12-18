@@ -115,20 +115,33 @@ const Dashboard = () => {
   };
 
   const simulateGeminiResponse = async (userMessage) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
     
-    const responses = {
-      'who is coming to visit today': 'Based on your calendar, your daughter Sarah is coming to visit today at 3 PM.',
-      'tell me about the time i lived in ohio': 'You lived in Ohio from 1985 to 1992. You worked as a teacher and have fond memories of the community there.',
-      default: 'I understand. Let me help you with that. Can you tell me more?', //this is a default response, replace with actual API call (Epaphras)
-    };
-    
-    const lowerMessage = userMessage.toLowerCase();
-    const response = Object.keys(responses).find(key => lowerMessage.includes(key));
-    
-    return {
-      text: responses[response] || responses.default,
-    };
+    try {
+      const response = await fetch(`${API_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 'demo_user', 
+          message: userMessage,
+          history: messages.slice(-10).map(msg => 
+            `${msg.sender}: ${msg.text}`
+          ),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return { text: data.response };
+    } catch (error) {
+      console.error('Chat API error:', error);
+      throw error;
+    }
   };
   const playBotResponse = async (text, voiceId = null) => {
     try {

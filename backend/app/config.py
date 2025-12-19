@@ -19,7 +19,7 @@ FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH")  # Path to se
 # CORS
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS", 
-    "http://localhost:5173,http://localhost:3000"  # Vite default port
+    "http://localhost:5173,http://localhost:5174,http://localhost:3000"  # Vite ports
 ).split(",")
 
 # Server

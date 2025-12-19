@@ -5,6 +5,7 @@ import AudioVisualizer from './AudioVisualizer';
 import { textToSpeechStream } from '../services/elevenLabsService';
 import { speechToText } from '../services/speechToTextService';
 import VoiceSettings from './VoiceSettings';
+import TaskWidget from './TaskWidget';
 
 const Dashboard = () => {
   const [messages, setMessages] = useState([]);
@@ -235,6 +236,9 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
+
+        {/* Visual Reminder Widget */}
+        <TaskWidget />
 
         <div className="sidebar-footer">
           <button 

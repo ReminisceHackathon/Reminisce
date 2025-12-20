@@ -1,7 +1,7 @@
 """FastAPI application entry point."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import chat, transcribe
+from app.routes import chat, transcribe, reminders
 from app.config import ALLOWED_ORIGINS
 import logging
 
@@ -28,6 +28,7 @@ app.add_middleware(
 # Include routers
 app.include_router(chat.router)
 app.include_router(transcribe.router)
+app.include_router(reminders.router)
 
 
 @app.get("/")
@@ -39,7 +40,8 @@ async def root():
         "endpoints": {
             "health": "/api/health",
             "chat": "/api/chat",
-            "transcribe": "/api/transcribe"
+            "transcribe": "/api/transcribe",
+            "reminders": "/api/reminders"
         }
     }
 

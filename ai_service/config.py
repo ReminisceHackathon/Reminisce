@@ -23,9 +23,8 @@ GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
 EMBEDDING_MODEL = "text-embedding-004"
 EMBEDDING_DIMENSION = 768  # text-embedding-004 output dimension
 
-# Gemini LLM Model
-# LLM_MODEL = "gemini-2.0-flash-001"
-LLM_MODEL = "gemini-1.5-pro"
+# Gemini LLM Model (use specific version for Vertex AI)
+LLM_MODEL = "gemini-2.0-flash-001"
 
 # =============================================================================
 # Memory Settings

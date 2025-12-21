@@ -6,8 +6,11 @@ import { textToSpeechStream } from '../services/elevenLabsService';
 import { speechToText } from '../services/speechToTextService';
 import VoiceSettings from './VoiceSettings';
 import TaskWidget from './TaskWidget';
+import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard = () => {
+  const { user, profile, idToken, logout, refreshToken } = useAuth();
+  
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -40,6 +43,18 @@ const Dashboard = () => {
   useEffect(() => {
     requestPermission();
   }, []);
+
+  // Get the current auth token (refresh if needed)
+  const getAuthHeaders = async () => {
+    let token = idToken;
+    
+    // Refresh token if it might be expired
+    if (!token && user) {
+      token = await refreshToken();
+    }
+    
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
 
   const handleVoiceRecord = async () => {
     if (isRecording) {
@@ -88,7 +103,7 @@ const Dashboard = () => {
     setIsProcessing(true);
 
     try {
-      const response = await simulateGeminiResponse(messageText);
+      const response = await sendMessageToAPI(messageText);
       
       const botMessage = {
         id: Date.now() + 1,
@@ -115,17 +130,22 @@ const Dashboard = () => {
     }
   };
 
-  const simulateGeminiResponse = async (userMessage) => {
+  const sendMessageToAPI = async (userMessage) => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
     
     try {
+      // Get auth headers
+      const authHeaders = await getAuthHeaders();
+      
       const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify({
-          user_id: 'demo_user', 
+          // Only send user_id if not authenticated (fallback for demo)
+          ...(user ? {} : { user_id: 'demo_user' }),
           message: userMessage,
           history: messages.slice(-10).map(msg => 
             `${msg.sender}: ${msg.text}`
@@ -144,6 +164,7 @@ const Dashboard = () => {
       throw error;
     }
   };
+
   const playBotResponse = async (text, voiceId = null) => {
     try {
       setIsPlayingAudio(true);
@@ -208,7 +229,23 @@ const Dashboard = () => {
     setIsPlayingAudio(false);
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   const hasMessages = messages.length > 0;
+  
+  // Get display name - prioritize profile display_name from backend, then Firebase user displayName, then email username, then default
+  // The profile comes from /auth/profile endpoint which returns UserProfile with display_name field
+  const displayName = (profile?.display_name && profile.display_name.trim()) || 
+                      (user?.displayName && user.displayName.trim()) || 
+                      (user?.email ? user.email.split('@')[0] : null) || 
+                      'User';
+  const userInitial = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="dashboard-container">
@@ -237,8 +274,8 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Visual Reminder Widget */}
-        <TaskWidget />
+        {/* Visual Reminder Widget - pass auth token for authenticated reminders */}
+        <TaskWidget idToken={idToken} />
 
         <div className="sidebar-footer">
           <button 
@@ -251,9 +288,14 @@ const Dashboard = () => {
             </svg>
             <span>Voice Settings</span>
           </button>
-          <div className="user-profile">
-            <div className="avatar">U</div>
-            <span className="username">User</span>
+          <div className="user-profile" onClick={handleLogout} title="Click to logout">
+            <div className="avatar">{userInitial}</div>
+            <span className="username">{displayName}</span>
+            {user && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="logout-icon">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
           </div>
         </div>
       </aside>
@@ -267,7 +309,13 @@ const Dashboard = () => {
       <main className="chat-container">
         {hasMessages && (
           <div className="chat-header">
-            <h1>Gemini</h1>
+            <h1>Reminisce</h1>
+            {user && (
+              <div className="auth-indicator">
+                <span className="auth-dot"></span>
+                <span>Memories synced</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -280,8 +328,14 @@ const Dashboard = () => {
                 <div className="diamond diamond-green"></div>
                 <div className="diamond diamond-orange"></div>
               </div>
-              <h2 className="welcome-greeting">Hi</h2>
+              <h2 className="welcome-greeting">Hi{user ? `, ${displayName}` : ''}!</h2>
               <h3 className="welcome-question">How are you today?</h3>
+              
+              {user && (
+                <p className="welcome-subtitle">
+                  I'm remembering our conversations and will remind you of important events.
+                </p>
+              )}
               
               {permissionError && (
                 <div className="permission-error">
@@ -331,7 +385,7 @@ const Dashboard = () => {
               {messages.map((message) => (
                 <div key={message.id} className={`message ${message.sender}`}>
                   <div className="message-avatar">
-                    {message.sender === 'user' ? 'U' : 'G'}
+                    {message.sender === 'user' ? userInitial : 'R'}
                   </div>
                   <div className="message-content">
                     <div className="message-text">{message.text}</div>
@@ -346,7 +400,7 @@ const Dashboard = () => {
               ))}
               {isProcessing && (
                 <div className="message bot">
-                  <div className="message-avatar">G</div>
+                  <div className="message-avatar">R</div>
                   <div className="message-content">
                     <div className="typing-indicator">
                       <span></span>
@@ -416,4 +470,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

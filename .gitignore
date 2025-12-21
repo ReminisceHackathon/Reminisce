@@ -9,6 +9,14 @@
 *.crt
 credentials.json
 service-account*.json
+*-107b142cde9b.json
+reminisce-hackathon-*.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!eslint.config.js
+!vite.config.js
 
 # =============================================================================
 # Python

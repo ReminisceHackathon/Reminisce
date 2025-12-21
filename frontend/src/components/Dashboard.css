@@ -208,10 +208,68 @@
     background-color: #ffffff;
   }
   
+  .chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .chat-header h1 {
     font-size: 20px;
     font-weight: 400;
     color: #202124;
+  }
+
+  .auth-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #48bb78;
+    padding: 4px 12px;
+    background: #f0fff4;
+    border-radius: 12px;
+  }
+
+  .auth-dot {
+    width: 8px;
+    height: 8px;
+    background: #48bb78;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .welcome-subtitle {
+    font-size: 14px;
+    color: #5f6368;
+    margin-top: 8px;
+    max-width: 400px;
+    text-align: center;
+  }
+
+  .logout-icon {
+    margin-left: 8px;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  .user-profile:hover .logout-icon {
+    opacity: 1;
+  }
+
+  .user-profile {
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .user-profile:hover {
+    background-color: rgba(0,0,0,0.05);
+    border-radius: 8px;
   }
   
   .messages-container {

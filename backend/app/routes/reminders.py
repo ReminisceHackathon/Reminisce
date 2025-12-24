@@ -1,104 +1,221 @@
-"""Reminders endpoint for visual reminder widget."""
-from fastapi import APIRouter
+"""Reminders endpoint with Firebase Firestore backend."""
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 import logging
+
+from app.services.firebase_service import FirebaseService
+from app.config import FIREBASE_CREDENTIALS_PATH
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["reminders"])
+security = HTTPBearer(auto_error=False)
 
-# In-memory storage for demo (replace with database in production)
-# Format: { user_id: [{ task, time, status, created_at }] }
-_reminders_store: dict = {
-    "demo_user": []
-}
+# Initialize Firebase service
+firebase_service = FirebaseService(
+    credentials_path=FIREBASE_CREDENTIALS_PATH if FIREBASE_CREDENTIALS_PATH else None
+)
 
+# Fallback in-memory store for unauthenticated users (demo mode)
+_demo_reminders: List[Dict] = []
+
+
+# =============================================================================
+# Authentication Helper
+# =============================================================================
+
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> Optional[Dict[str, Any]]:
+    """Optionally verify Firebase ID token."""
+    if not credentials:
+        return None
+    
+    try:
+        id_token = credentials.credentials
+        decoded_token = firebase_service.verify_id_token(id_token)
+        return decoded_token
+    except Exception as e:
+        logger.warning(f"Token verification failed: {e}")
+        return None
+
+
+# =============================================================================
+# Request/Response Models
+# =============================================================================
 
 class Reminder(BaseModel):
     task: str
     time: str
-    status: str = "pending"  # pending, new, completed, dismissed
+    status: str = "pending"
 
 
 class ReminderCreate(BaseModel):
-    user_id: str
     task: str
     time: str
 
 
 class ReminderResponse(BaseModel):
+    id: Optional[str] = None
     task: str
     time: str
     status: str
 
 
+# =============================================================================
+# Endpoints
+# =============================================================================
+
 @router.get("/reminders", response_model=List[ReminderResponse])
-async def get_reminders(user_id: str = "demo_user"):
+async def get_reminders(
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional),
+    user_id: str = "demo_user"
+):
     """
     Get all reminders for a user.
     
-    Query params:
-        user_id: User identifier (default: demo_user)
-    
-    Returns:
-        List of reminders with task, time, and status
+    If authenticated, returns reminders from Firestore.
+    Otherwise, returns demo reminders from in-memory store.
     """
-    user_reminders = _reminders_store.get(user_id, [])
-    
-    # Mark any "new" reminders as "pending" after first fetch
-    result = []
-    for reminder in user_reminders:
-        result.append({
-            "task": reminder["task"],
-            "time": reminder["time"],
-            "status": reminder["status"]
-        })
-        # After sending as "new", mark as "pending" for next fetch
-        if reminder["status"] == "new":
-            reminder["status"] = "pending"
-    
-    return result
+    if current_user:
+        # Authenticated user - use Firestore
+        uid = current_user.get("uid")
+        
+        # Process daily memory-based reminders
+        try:
+            firebase_service.process_daily_reminders(uid)
+        except Exception as e:
+            logger.warning(f"Error processing daily reminders: {e}")
+        
+        reminders = firebase_service.get_user_reminders(uid)
+        
+        result = []
+        for r in reminders:
+            result.append(ReminderResponse(
+                id=r.get("id"),
+                task=r.get("task", ""),
+                time=r.get("time", ""),
+                status=r.get("status", "pending")
+            ))
+            
+            # Mark "new" as "pending" after first fetch
+            if r.get("status") == "new":
+                firebase_service.update_reminder_status(uid, r["id"], "pending")
+        
+        return result
+    else:
+        # Demo mode - use in-memory store
+        result = []
+        for r in _demo_reminders:
+            result.append(ReminderResponse(
+                task=r["task"],
+                time=r["time"],
+                status=r["status"]
+            ))
+            if r["status"] == "new":
+                r["status"] = "pending"
+        
+        return result
 
 
-@router.post("/reminders")
-async def create_reminder(reminder: ReminderCreate):
+@router.post("/reminders", response_model=ReminderResponse)
+async def create_reminder(
+    reminder: ReminderCreate,
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
     """
     Create a new reminder.
     
-    Request body:
-        user_id: User identifier
-        task: Task description
-        time: Time string (e.g., "2:00 PM")
+    If authenticated, stores in Firestore.
+    Otherwise, stores in demo memory.
     """
-    user_id = reminder.user_id
-    
-    if user_id not in _reminders_store:
-        _reminders_store[user_id] = []
-    
-    new_reminder = {
-        "task": reminder.task,
-        "time": reminder.time,
-        "status": "new",
-        "created_at": datetime.utcnow().isoformat()
-    }
-    
-    _reminders_store[user_id].append(new_reminder)
-    logger.info(f"Created reminder for {user_id}: {reminder.task} at {reminder.time}")
-    
-    return {"message": "Reminder created", "reminder": new_reminder}
+    if current_user:
+        uid = current_user.get("uid")
+        reminder_id = firebase_service.create_reminder(
+            user_id=uid,
+            task=reminder.task,
+            time=reminder.time
+        )
+        
+        logger.info(f"Created reminder for user {uid}: {reminder.task}")
+        
+        return ReminderResponse(
+            id=reminder_id,
+            task=reminder.task,
+            time=reminder.time,
+            status="new"
+        )
+    else:
+        # Demo mode
+        new_reminder = {
+            "task": reminder.task,
+            "time": reminder.time,
+            "status": "new",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        _demo_reminders.append(new_reminder)
+        
+        return ReminderResponse(
+            task=reminder.task,
+            time=reminder.time,
+            status="new"
+        )
 
 
-@router.delete("/reminders/{task}")
-async def delete_reminder(task: str, user_id: str = "demo_user"):
-    """Delete a reminder by task name."""
-    if user_id in _reminders_store:
-        _reminders_store[user_id] = [
-            r for r in _reminders_store[user_id] 
-            if r["task"] != task
-        ]
-    return {"message": "Reminder deleted"}
+@router.delete("/reminders/{reminder_id}")
+async def delete_reminder(
+    reminder_id: str,
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
+    """Delete a reminder by ID or task name."""
+    if current_user:
+        uid = current_user.get("uid")
+        success = firebase_service.delete_reminder(uid, reminder_id)
+        
+        if success:
+            return {"message": "Reminder deleted"}
+        else:
+            raise HTTPException(status_code=404, detail="Reminder not found")
+    else:
+        # Demo mode - delete by task name
+        global _demo_reminders
+        _demo_reminders = [r for r in _demo_reminders if r["task"] != reminder_id]
+        return {"message": "Reminder deleted"}
+
+
+@router.put("/reminders/{reminder_id}/status")
+async def update_reminder_status(
+    reminder_id: str,
+    status: str,
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
+    """Update the status of a reminder."""
+    valid_statuses = ["pending", "completed", "dismissed"]
+    if status not in valid_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid status. Must be one of: {valid_statuses}"
+        )
+    
+    if current_user:
+        uid = current_user.get("uid")
+        success = firebase_service.update_reminder_status(uid, reminder_id, status)
+        
+        if success:
+            return {"message": "Status updated", "status": status}
+        else:
+            raise HTTPException(status_code=404, detail="Reminder not found")
+    else:
+        # Demo mode
+        for r in _demo_reminders:
+            if r["task"] == reminder_id:
+                r["status"] = status
+                return {"message": "Status updated", "status": status}
+        
+        raise HTTPException(status_code=404, detail="Reminder not found")
 
 
 @router.post("/reminders/demo")
@@ -114,11 +231,28 @@ async def create_demo_reminder():
         "created_at": datetime.utcnow().isoformat()
     }
     
-    if "demo_user" not in _reminders_store:
-        _reminders_store["demo_user"] = []
-    
-    _reminders_store["demo_user"].append(demo_reminder)
+    _demo_reminders.append(demo_reminder)
     logger.info("Created demo reminder")
     
     return {"message": "Demo reminder created", "reminder": demo_reminder}
 
+
+@router.get("/reminders/check-memories")
+async def check_memory_reminders(
+    current_user: Dict[str, Any] = Depends(get_current_user_optional)
+):
+    """
+    Manually trigger checking for memory-based reminders.
+    Called to process any memories that should trigger reminders today.
+    """
+    if not current_user:
+        return {"message": "Authentication required for memory-based reminders"}
+    
+    uid = current_user.get("uid")
+    created_reminders = firebase_service.process_daily_reminders(uid)
+    
+    return {
+        "message": f"Processed memory reminders",
+        "reminders_created": len(created_reminders),
+        "reminders": created_reminders
+    }

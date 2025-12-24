@@ -1,185 +1,217 @@
-"""Chat endpoint for Gemini AI responses."""
-from fastapi import APIRouter, HTTPException
+"""Chat endpoint for Gemini AI responses with memory extraction."""
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import sys
 import os
 import logging
-import re
 import threading
 
 # Add ai_service to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 from ai_service import ReminisceBrain
-from .reminders import _reminders_store
+from app.services.firebase_service import FirebaseService
+from app.services.memory_extraction_service import extract_memories_from_conversation
+from app.config import FIREBASE_CREDENTIALS_PATH
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["chat"])
+security = HTTPBearer(auto_error=False)
 
-# Initialize brain once at startup
+# Initialize services
 brain = ReminisceBrain()
+firebase_service = FirebaseService(
+    credentials_path=FIREBASE_CREDENTIALS_PATH if FIREBASE_CREDENTIALS_PATH else None
+)
 
 
-def extract_reminder_from_conversation(message: str, response: str, history: List[str]) -> Optional[dict]:
+# =============================================================================
+# Authentication Helper
+# =============================================================================
+
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> Optional[Dict[str, Any]]:
     """
-    Extract reminder details from conversation using pattern matching.
-    Returns dict with 'task' and 'time' if found, None otherwise.
+    Optionally verify Firebase ID token.
+    Returns user info if authenticated, None otherwise.
     """
-    # Combine recent context
-    full_context = " ".join(history[-4:]) + " " + message + " " + response
-    full_context_lower = full_context.lower()
-    
-    # Check if this is a reminder-related conversation
-    reminder_keywords = ["remind", "reminder", "don't forget", "remember to", "set a reminder", "at"]
-    if not any(kw in full_context_lower for kw in reminder_keywords):
+    if not credentials:
         return None
     
-    # Extract time patterns
-    time_patterns = [
-        r'(\d{1,2})\s*(?::|\.)\s*(\d{2})\s*(am|pm|a\.m\.|p\.m\.)',  # 2:00 PM
-        r'(\d{1,2})\s*(am|pm|a\.m\.|p\.m\.)',  # 2 PM
-        r'(\d{1,2})\s*(?:o\'?clock)',  # 2 o'clock
-    ]
-    
-    time_found = None
-    for pattern in time_patterns:
-        match = re.search(pattern, full_context_lower)
-        if match:
-            groups = match.groups()
-            if len(groups) == 3:  # Hour:Min AM/PM
-                hour, minute, period = groups
-                time_found = f"{hour}:{minute} {period.upper().replace('.', '')}"
-            elif len(groups) == 2:  # Hour AM/PM
-                hour, period = groups
-                time_found = f"{hour}:00 {period.upper().replace('.', '')}"
-            else:
-                hour = groups[0]
-                time_found = f"{hour}:00"
-            break
-    
-    if not time_found:
+    try:
+        id_token = credentials.credentials
+        decoded_token = firebase_service.verify_id_token(id_token)
+        return decoded_token
+    except Exception as e:
+        logger.warning(f"Token verification failed: {e}")
         return None
-    
-    # Extract task - look for common patterns
-    task_patterns = [
-        r'(?:remind(?:er)?.*?to\s+)?call\s+(?:my\s+)?(\w+)',  # call mentor/grandson
-        r'(?:remind(?:er)?.*?to\s+)?take\s+(?:my\s+)?(\w+)',  # take medication
-        r'remind(?:er)?.*?(?:to|about)\s+(.+?)(?:\s+at|\s+tomorrow|$)',  # general reminder
-    ]
-    
-    task_found = None
-    for pattern in task_patterns:
-        match = re.search(pattern, full_context_lower)
-        if match:
-            task_found = match.group(1).strip() if match.group(1) else match.group(0).strip()
-            break
-    
-    # If we found "call" in context, build the task
-    if "call" in full_context_lower:
-        # Find what to call
-        call_match = re.search(r'call\s+(?:my\s+)?(\w+)', full_context_lower)
-        if call_match:
-            who = call_match.group(1).capitalize()
-            task_found = f"Call {who}"
-    
-    if not task_found:
-        task_found = "Reminder"
-    else:
-        # Capitalize nicely
-        task_found = task_found.title()
-    
-    return {"task": task_found, "time": time_found}
 
 
-def create_reminder_async(user_id: str, task: str, time: str):
-    """Create a reminder in the background."""
-    from datetime import datetime
-    
-    if user_id not in _reminders_store:
-        _reminders_store[user_id] = []
-    
-    # Check if this reminder already exists
-    existing = [r for r in _reminders_store[user_id] if r["task"].lower() == task.lower()]
-    if existing:
-        logger.info(f"Reminder already exists: {task}")
-        return
-    
-    new_reminder = {
-        "task": task,
-        "time": time,
-        "status": "new",
-        "created_at": datetime.utcnow().isoformat()
-    }
-    
-    _reminders_store[user_id].append(new_reminder)
-    logger.info(f"✅ Auto-created reminder for {user_id}: {task} at {time}")
+# =============================================================================
+# Background Tasks
+# =============================================================================
 
+def save_memories_async(
+    user_id: str,
+    message: str,
+    response: str,
+    history: List[str]
+):
+    """
+    Background task to extract and save memories from conversation.
+    """
+    try:
+        # Extract memories with dates
+        memories = extract_memories_from_conversation(
+            message=message,
+            response=response,
+            history=history,
+            user_id=user_id
+        )
+        
+        for memory in memories:
+            firebase_service.save_user_memory(
+                user_id=user_id,
+                memory_text=memory["text"],
+                category=memory.get("category", "general"),
+                event_date=memory.get("event_date"),
+                reminder_date=memory.get("reminder_date"),
+                source_message=memory.get("source_message")
+            )
+            
+            # If there's a reminder date for today, create immediate reminder
+            if memory.get("reminder_date"):
+                from datetime import datetime
+                today = datetime.utcnow().date()
+                reminder_date = memory["reminder_date"].date() if memory["reminder_date"] else None
+                
+                if reminder_date == today:
+                    firebase_service.create_reminder(
+                        user_id=user_id,
+                        task=memory["text"],
+                        time="Now"
+                    )
+        
+        if memories:
+            logger.info(f"Saved {len(memories)} memories for user {user_id}")
+            
+    except Exception as e:
+        logger.error(f"Error saving memories: {e}")
+
+
+def save_conversation_async(user_id: str, message: str, response: str):
+    """
+    Background task to save conversation to Firebase.
+    """
+    try:
+        firebase_service.save_message(user_id, "user", message)
+        firebase_service.save_message(user_id, "assistant", response)
+    except Exception as e:
+        logger.error(f"Error saving conversation: {e}")
+
+
+# =============================================================================
+# Request/Response Models
+# =============================================================================
 
 class ChatRequest(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None  # Optional if using auth token
     message: str
     history: Optional[List[str]] = None
 
 
 class ChatResponse(BaseModel):
     response: str
+    user_id: str
+    memories_extracted: bool = False
 
+
+# =============================================================================
+# Endpoints
+# =============================================================================
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(
+    request: ChatRequest,
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
     """
     Generate AI response using ReminisceBrain.
     
-    Request format:
-    {
-        "user_id": "firebase_user_123",
-        "message": "Who is coming to visit today?",
-        "history": ["user: Hello", "assistant: Hi! How can I help?"]
-    }
+    If authenticated, uses the Firebase UID from the token.
+    Otherwise, uses the provided user_id (for backward compatibility).
+    
+    The conversation is saved to Firestore and memories are extracted
+    for future reminders.
     """
     try:
-        # Validate input
+        # Determine user ID (prefer authenticated user)
+        if current_user:
+            user_id = current_user.get("uid")
+        elif request.user_id:
+            user_id = request.user_id
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="user_id required (or authenticate with Bearer token)"
+            )
+        
+        # Validate message
         if not request.message or not request.message.strip():
             raise HTTPException(status_code=400, detail="Message cannot be empty")
         
-        if not request.user_id:
-            raise HTTPException(status_code=400, detail="user_id is required")
-        
-        # Use empty history if not provided
+        # Get conversation history from Firebase if not provided
         history = request.history or []
+        if not history and current_user:
+            history = firebase_service.get_conversation_history(user_id, limit=10)
         
-        logger.info(f"Generating response for user {request.user_id}: {request.message[:50]}...")
+        logger.info(f"Generating response for user {user_id}: {request.message[:50]}...")
+        
+        # Check for daily reminders on first message of the day
+        if current_user:
+            try:
+                created_reminders = firebase_service.process_daily_reminders(user_id)
+                if created_reminders:
+                    logger.info(f"Triggered {len(created_reminders)} daily reminders")
+            except Exception as e:
+                logger.warning(f"Error processing daily reminders: {e}")
         
         # Generate response using ReminisceBrain
         response_text = brain.generate_response(
-            user_id=request.user_id,
+            user_id=user_id,
             message=request.message,
             history=history,
             include_memories=True,
             extract_facts=True
         )
         
-        # Auto-extract reminders from conversation (in background)
-        try:
-            reminder = extract_reminder_from_conversation(
-                message=request.message,
-                response=response_text,
-                history=history
+        # Save conversation and extract memories in background
+        if current_user:
+            # Save conversation
+            thread1 = threading.Thread(
+                target=save_conversation_async,
+                args=(user_id, request.message, response_text),
+                daemon=True
             )
-            if reminder:
-                thread = threading.Thread(
-                    target=create_reminder_async,
-                    args=(request.user_id, reminder["task"], reminder["time"]),
-                    daemon=True
-                )
-                thread.start()
-                logger.info(f"Detected reminder: {reminder}")
-        except Exception as e:
-            logger.warning(f"Reminder extraction failed: {e}")
+            thread1.start()
+            
+            # Extract and save memories with dates
+            thread2 = threading.Thread(
+                target=save_memories_async,
+                args=(user_id, request.message, response_text, history),
+                daemon=True
+            )
+            thread2.start()
         
-        return ChatResponse(response=response_text)
+        return ChatResponse(
+            response=response_text,
+            user_id=user_id,
+            memories_extracted=current_user is not None
+        )
         
     except HTTPException:
         raise
@@ -188,20 +220,42 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Failed to generate response: {str(e)}")
 
 
+@router.get("/memories")
+async def get_memories(
+    current_user: Dict[str, Any] = Depends(get_current_user_optional),
+    category: Optional[str] = None,
+    limit: int = 50
+):
+    """
+    Get stored memories for the authenticated user.
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    user_id = current_user.get("uid")
+    memories = firebase_service.get_user_memories(user_id, category=category, limit=limit)
+    
+    return {
+        "user_id": user_id,
+        "count": len(memories),
+        "memories": memories
+    }
+
+
 @router.get("/health")
 async def health_check():
     """Quick health check endpoint."""
-    # Fast check - don't make API calls
     return {
         "status": "ok",
         "brain": "initialized",
-        "version": "1.0.0"
+        "firebase": "initialized",
+        "version": "2.0.0"
     }
 
 
 @router.get("/health/full")
 async def full_health_check():
-    """Full health check - tests all services (slow)."""
+    """Full health check - tests all services."""
     try:
         status = brain.health_check()
         return {
@@ -213,4 +267,3 @@ async def full_health_check():
             "status": "error",
             "error": str(e)
         }
-

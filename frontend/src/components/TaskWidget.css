@@ -262,6 +262,59 @@
   color: #718096;
 }
 
+/* Sync indicator */
+.sync-indicator {
+  color: #48bb78;
+  font-size: 0.9rem;
+  margin-left: 4px;
+}
+
+/* Task action buttons */
+.task-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.task-item:hover .task-actions {
+  opacity: 1;
+}
+
+.task-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.task-action-btn.complete {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.task-action-btn.complete:hover {
+  background: #48bb78;
+  color: white;
+}
+
+.task-action-btn.dismiss {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.task-action-btn.dismiss:hover {
+  background: #fc8181;
+  color: white;
+}
+
 /* Responsive adjustments */
 @media (max-width: 400px) {
   .task-widget {

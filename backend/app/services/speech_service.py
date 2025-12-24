@@ -1,6 +1,7 @@
 """Google Cloud Speech-to-Text service."""
 import logging
 import asyncio
+import os
 from concurrent.futures import ThreadPoolExecutor
 from google.cloud import speech
 
@@ -14,23 +15,62 @@ class SpeechToTextService:
     """Handles audio transcription using Google Cloud Speech-to-Text."""
     
     def __init__(self, project_id: str):
+        # Google Cloud client will automatically use GOOGLE_APPLICATION_CREDENTIALS
+        # from environment variable if set
         self.client = speech.SpeechClient()
         self.project_id = project_id
+        
+        # Log which credentials are being used
+        creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if creds_path:
+            logger.info(f"Using service account credentials from: {creds_path}")
+        else:
+            logger.warning("GOOGLE_APPLICATION_CREDENTIALS not set, using default credentials")
     
     def _sync_transcribe(self, audio_content: bytes, language_code: str) -> str:
         """Synchronous transcription (runs in thread pool)."""
-        config = speech.RecognitionConfig(
-            encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
-            sample_rate_hertz=48000,  # WebM Opus default
-            language_code=language_code,
-            enable_automatic_punctuation=True,
-            model="latest_long",  # Better for longer conversations
-            use_enhanced=True,  # Enhanced model for better accuracy
-        )
+        # Try multiple encoding formats - browsers can send different formats
+        encoding_options = [
+            (speech.RecognitionConfig.AudioEncoding.WEBM_OPUS, 48000),
+            (speech.RecognitionConfig.AudioEncoding.OGG_OPUS, 48000),
+            (speech.RecognitionConfig.AudioEncoding.LINEAR16, 16000),
+        ]
         
-        audio = speech.RecognitionAudio(content=audio_content)
-        response = self.client.recognize(config=config, audio=audio)
-        return response
+        last_error = None
+        
+        for encoding, sample_rate in encoding_options:
+            try:
+                config = speech.RecognitionConfig(
+                    encoding=encoding,
+                    sample_rate_hertz=sample_rate,
+                    language_code=language_code,
+                    enable_automatic_punctuation=True,
+                    model="latest_long",
+                    use_enhanced=True,
+                )
+                
+                audio = speech.RecognitionAudio(content=audio_content)
+                response = self.client.recognize(config=config, audio=audio)
+                
+                if response.results:
+                    logger.info(f"Successfully transcribed using encoding: {encoding.name}")
+                    return response
+                else:
+                    logger.debug(f"No results with encoding {encoding.name}, trying next...")
+                    
+            except Exception as e:
+                last_error = e
+                logger.debug(f"Encoding {encoding.name} failed: {e}, trying next...")
+                continue
+        
+        # If all encodings failed, log the last error
+        if last_error:
+            logger.error(f"All encoding attempts failed. Last error: {last_error}")
+            raise last_error
+        
+        # If we got here, no encoding worked but no exception was raised
+        logger.warning("No transcription results with any encoding format")
+        return type('Response', (), {'results': []})()  # Return empty response object
     
     async def transcribe_audio(self, audio_content: bytes, language_code: str = "en-US") -> str:
         """
@@ -70,6 +110,9 @@ class SpeechToTextService:
             return full_transcript.strip()
             
         except Exception as e:
-            logger.error(f"Speech-to-text error: {e}")
-            raise Exception(f"Transcription failed: {str(e)}")
+            error_msg = str(e)
+            logger.error(f"Speech-to-text error: {error_msg}")
+            logger.error(f"Error type: {type(e).__name__}")
+            # Include more details in the error
+            raise Exception(f"Transcription failed: {error_msg}")
 

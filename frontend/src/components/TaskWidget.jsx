@@ -3,7 +3,7 @@ import './TaskWidget.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000/api';
 
-const TaskWidget = () => {
+const TaskWidget = ({ idToken }) => {
   const [reminders, setReminders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +12,14 @@ const TaskWidget = () => {
   useEffect(() => {
     const fetchReminders = async () => {
       try {
-        const response = await fetch(`${API_URL}/reminders`);
+        const headers = {};
+        
+        // Add auth header if token is available
+        if (idToken) {
+          headers['Authorization'] = `Bearer ${idToken}`;
+        }
+        
+        const response = await fetch(`${API_URL}/reminders`, { headers });
         
         if (!response.ok) {
           throw new Error('Failed to fetch reminders');
@@ -21,8 +28,8 @@ const TaskWidget = () => {
         const data = await response.json();
         
         // Mark which reminders are truly "new" (not seen before)
-        const updatedReminders = data.map((reminder, index) => {
-          const reminderId = `${reminder.task}-${reminder.time}`;
+        const updatedReminders = data.map((reminder) => {
+          const reminderId = reminder.id || `${reminder.task}-${reminder.time}`;
           const isNew = reminder.status === 'new' && !seenIds.has(reminderId);
           return { ...reminder, id: reminderId, isNew };
         });
@@ -45,11 +52,11 @@ const TaskWidget = () => {
     // Initial fetch
     fetchReminders();
 
-    // Poll every 2 seconds
-    const intervalId = setInterval(fetchReminders, 2000);
+    // Poll every 5 seconds (reduced from 2 to be less aggressive)
+    const intervalId = setInterval(fetchReminders, 5000);
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [idToken]); // Re-fetch when token changes
 
   // Clear "new" animation after 3 seconds
   useEffect(() => {
@@ -59,6 +66,52 @@ const TaskWidget = () => {
     
     return () => clearTimeout(timer);
   }, [reminders.length]);
+
+  const handleDismiss = async (reminderId) => {
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
+      
+      await fetch(`${API_URL}/reminders/${reminderId}/status?status=dismissed`, {
+        method: 'PUT',
+        headers,
+      });
+      
+      // Remove from local state
+      setReminders(prev => prev.filter(r => r.id !== reminderId));
+    } catch (err) {
+      console.error('Error dismissing reminder:', err);
+    }
+  };
+
+  const handleComplete = async (reminderId) => {
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
+      
+      await fetch(`${API_URL}/reminders/${reminderId}/status?status=completed`, {
+        method: 'PUT',
+        headers,
+      });
+      
+      // Update local state
+      setReminders(prev => prev.map(r => 
+        r.id === reminderId ? { ...r, status: 'completed' } : r
+      ));
+    } catch (err) {
+      console.error('Error completing reminder:', err);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -75,13 +128,19 @@ const TaskWidget = () => {
     );
   }
 
+  // Filter out completed reminders for display
+  const activeReminders = reminders.filter(r => r.status !== 'completed' && r.status !== 'dismissed');
+
   return (
     <div className="task-widget">
       <div className="task-widget-header">
         <span className="task-widget-icon">🔔</span>
         <h3>Reminders</h3>
-        {reminders.length > 0 && (
-          <span className="task-count">{reminders.length}</span>
+        {activeReminders.length > 0 && (
+          <span className="task-count">{activeReminders.length}</span>
+        )}
+        {idToken && (
+          <span className="sync-indicator" title="Synced with your account">✓</span>
         )}
       </div>
 
@@ -91,15 +150,20 @@ const TaskWidget = () => {
             <span>⚠️</span>
             <p>{error}</p>
           </div>
-        ) : reminders.length === 0 ? (
+        ) : activeReminders.length === 0 ? (
           <div className="task-widget-empty">
             <span className="empty-icon">✨</span>
             <p>No reminders set</p>
-            <span className="empty-hint">Your reminders will appear here</span>
+            <span className="empty-hint">
+              {idToken 
+                ? "Tell me about upcoming events and I'll remind you!" 
+                : "Your reminders will appear here"
+              }
+            </span>
           </div>
         ) : (
           <ul className="task-list">
-            {reminders.map((reminder) => (
+            {activeReminders.map((reminder) => (
               <li 
                 key={reminder.id} 
                 className={`task-item ${reminder.isNew ? 'task-new' : ''} ${reminder.status}`}
@@ -113,6 +177,22 @@ const TaskWidget = () => {
                     <span className="task-new-badge">New</span>
                   )}
                 </div>
+                <div className="task-actions">
+                  <button 
+                    className="task-action-btn complete"
+                    onClick={() => handleComplete(reminder.id)}
+                    title="Mark as complete"
+                  >
+                    ✓
+                  </button>
+                  <button 
+                    className="task-action-btn dismiss"
+                    onClick={() => handleDismiss(reminder.id)}
+                    title="Dismiss"
+                  >
+                    ×
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -123,4 +203,3 @@ const TaskWidget = () => {
 };
 
 export default TaskWidget;
-

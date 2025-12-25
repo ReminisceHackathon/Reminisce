@@ -1,335 +1,182 @@
 /* ============================================
-   TaskWidget - Soothing Reminder Display
-   Designed for seniors with high contrast & large fonts
+   Task Widget - Claude-inspired Dark Theme
    ============================================ */
 
 .task-widget {
-  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%);
+  background: var(--bg-tertiary, #2a2a32);
   border-radius: 16px;
   padding: 16px;
-  margin: 16px 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border: 2px solid #c5dff8;
-  transition: all 0.3s ease;
+  margin-bottom: 16px;
 }
 
-.task-widget:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+.task-widget.loading,
+.task-widget.error {
+  text-align: center;
+  padding: 24px 16px;
 }
 
-/* Header */
-.task-widget-header {
+.widget-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 2px solid #c5dff8;
+  border-bottom: 1px solid var(--border-color, #3a3a42);
 }
 
-.task-widget-icon {
-  font-size: 1.5rem;
-  animation: gentle-bounce 2s ease-in-out infinite;
+.widget-header span[role="img"] {
+  font-size: 18px;
 }
 
-@keyframes gentle-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-
-.task-widget-header h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1a365d;
-  margin: 0;
+.widget-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #f5f5f7);
   flex: 1;
-  letter-spacing: 0.02em;
+  margin: 0;
 }
 
-.task-count {
-  background: #4a90d9;
+.widget-header .sync-indicator {
+  font-size: 14px;
+  color: var(--accent-blue, #4a9eff);
+}
+
+.reminder-count {
+  background: var(--accent-blue, #4a9eff);
   color: white;
-  font-size: 0.9rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 20px;
-  min-width: 28px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 20px 8px;
+}
+
+.empty-state .empty-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.empty-state .empty-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, #a0a0a8);
+  margin-bottom: 6px;
+}
+
+.empty-state .empty-subtitle {
+  font-size: 12px;
+  color: var(--text-muted, #6b6b75);
+  line-height: 1.5;
+}
+
+/* Reminder List */
+.reminder-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color, #3a3a42);
+  transition: all 0.2s ease;
+}
+
+.reminder-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.reminder-item:first-child {
+  padding-top: 0;
+}
+
+.reminder-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-blue, #4a9eff);
+  min-width: 65px;
+  padding: 4px 8px;
+  background: rgba(74, 158, 255, 0.1);
+  border-radius: 6px;
   text-align: center;
 }
 
-/* Content area */
-.task-widget-content {
-  min-height: 80px;
+.reminder-task {
+  font-size: 13px;
+  color: var(--text-primary, #f5f5f7);
+  flex: 1;
+  line-height: 1.4;
 }
 
-/* Loading state */
-.task-widget-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  gap: 12px;
-  color: #4a5568;
-  font-size: 1rem;
+/* New Reminder Animation */
+.reminder-item.new-reminder {
+  background: rgba(74, 158, 255, 0.05);
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: 8px;
+  animation: new-pulse 2s ease-in-out infinite;
 }
 
-.task-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #c5dff8;
-  border-top-color: #4a90d9;
+.reminder-item.new-reminder .reminder-time {
+  background: var(--accent-blue, #4a9eff);
+  color: white;
+}
+
+@keyframes new-pulse {
+  0%, 100% {
+    background: rgba(74, 158, 255, 0.05);
+  }
+  50% {
+    background: rgba(74, 158, 255, 0.12);
+  }
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-color, #3a3a42);
+  border-top-color: var(--accent-blue, #4a9eff);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin: 0 auto 12px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* Empty state */
-.task-widget-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: 2.5rem;
-  margin-bottom: 8px;
-  opacity: 0.8;
-}
-
-.task-widget-empty p {
-  font-size: 1.1rem;
-  color: #2d3748;
-  font-weight: 600;
-  margin: 0 0 6px 0;
-}
-
-.empty-hint {
-  font-size: 0.95rem;
-  color: #718096;
-}
-
-/* Error state */
-.task-widget-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px;
-  background: #fff5f5;
-  border-radius: 12px;
-  border: 1px solid #feb2b2;
-}
-
-.task-widget-error span {
-  font-size: 1.5rem;
-  margin-bottom: 8px;
-}
-
-.task-widget-error p {
-  color: #c53030;
-  font-size: 1rem;
+.task-widget.loading p,
+.task-widget.error p {
+  font-size: 13px;
+  color: var(--text-muted, #6b6b75);
   margin: 0;
 }
 
-/* Task List */
-.task-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.task-widget.error p {
+  color: #ef4444;
 }
 
-/* Individual Task Item */
-.task-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: white;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 2px solid #e2e8f0;
-  transition: all 0.3s ease;
-  cursor: default;
+/* Hover Effects */
+.reminder-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: 8px;
 }
 
-.task-item:hover {
-  border-color: #4a90d9;
-  transform: translateX(4px);
+.reminder-item.new-reminder:hover {
+  background: rgba(74, 158, 255, 0.15);
 }
-
-/* New task animation */
-.task-item.task-new {
-  animation: pulse-highlight 1.5s ease-in-out 3;
-  border-color: #48bb78;
-  background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
-}
-
-@keyframes pulse-highlight {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(72, 187, 120, 0);
-  }
-}
-
-/* Time badge */
-.task-time-badge {
-  background: linear-gradient(135deg, #4a90d9 0%, #3182ce 100%);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 10px;
-  min-width: 80px;
-  text-align: center;
-}
-
-.task-time {
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-/* Task details */
-.task-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.task-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1a202c;
-  line-height: 1.4;
-}
-
-.task-new-badge {
-  display: inline-block;
-  background: #48bb78;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  width: fit-content;
-  animation: badge-pop 0.3s ease-out;
-}
-
-@keyframes badge-pop {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Status variations */
-.task-item.urgent {
-  border-color: #fc8181;
-  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
-}
-
-.task-item.urgent .task-time-badge {
-  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
-}
-
-.task-item.completed {
-  opacity: 0.7;
-  border-color: #9ae6b4;
-  background: #f0fff4;
-}
-
-.task-item.completed .task-name {
-  text-decoration: line-through;
-  color: #718096;
-}
-
-/* Sync indicator */
-.sync-indicator {
-  color: #48bb78;
-  font-size: 0.9rem;
-  margin-left: 4px;
-}
-
-/* Task action buttons */
-.task-actions {
-  display: flex;
-  gap: 6px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.task-item:hover .task-actions {
-  opacity: 1;
-}
-
-.task-action-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.task-action-btn.complete {
-  background: #c6f6d5;
-  color: #22543d;
-}
-
-.task-action-btn.complete:hover {
-  background: #48bb78;
-  color: white;
-}
-
-.task-action-btn.dismiss {
-  background: #fed7d7;
-  color: #742a2a;
-}
-
-.task-action-btn.dismiss:hover {
-  background: #fc8181;
-  color: white;
-}
-
-/* Responsive adjustments */
-@media (max-width: 400px) {
-  .task-widget {
-    margin: 12px 8px;
-    padding: 14px;
-  }
-  
-  .task-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
-  .task-time-badge {
-    width: 100%;
-  }
-}
-

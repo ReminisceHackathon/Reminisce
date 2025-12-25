@@ -188,7 +188,7 @@ def extract_events_with_ai(conversation: str) -> List[Dict[str, Any]]:
     """
     try:
         llm = ChatVertexAI(
-            model="gemini-1.5-pro",
+            model="gemini-2.0-flash-001",
             project=GCP_PROJECT_ID,
             location=GCP_LOCATION,
             temperature=0.1,

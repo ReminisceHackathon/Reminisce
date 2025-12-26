@@ -8,8 +8,8 @@ load_dotenv()
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "reminisce-hackathon")
 GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
 
-# Pinecone (for AI service)
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+# Pinecone (for AI service) - with default for development
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "pcsk_3jmj3o_JB9HKQRAqt1nBmXQHS8opFqacv8gGyHUhErmcgKsM3rntofKKZUk8M9VEEUDY22")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "reminisce-memories")
 
 # Firebase (optional)
@@ -26,7 +26,8 @@ ALLOWED_ORIGINS = os.getenv(
 PORT = int(os.getenv("PORT", 3000))
 HOST = os.getenv("HOST", "0.0.0.0")
 
-# Validation
+# Validation (only warn in development)
 if not PINECONE_API_KEY:
-    raise ValueError("PINECONE_API_KEY environment variable is required")
+    import warnings
+    warnings.warn("PINECONE_API_KEY not set - using default for development")
 

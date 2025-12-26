@@ -14,12 +14,15 @@ class FirebaseService:
     
     def __init__(self, credentials_path: Optional[str] = None, project_id: Optional[str] = None):
         if not firebase_admin._apps:
-            # Get project ID from environment if not provided
+            # Get project ID from environment if not provided (with fallback default)
+            import os
             if project_id is None:
-                import os
-                project_id = os.getenv("FIREBASE_PROJECT_ID") or os.getenv("GCP_PROJECT_ID")
+                project_id = os.getenv("FIREBASE_PROJECT_ID") or os.getenv("GCP_PROJECT_ID") or "reminisce-hackathon-b44cb"
             
-            options = {"projectId": project_id} if project_id else None
+            # Also set the env var for other Google Cloud services
+            os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
+            
+            options = {"projectId": project_id}
             
             if credentials_path:
                 cred = credentials.Certificate(credentials_path)

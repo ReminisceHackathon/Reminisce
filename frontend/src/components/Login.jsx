@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import './Login.css';
+import AuthLayout from './AuthLayout';
 
 const Login = ({ onSwitchToRegister }) => {
   const [email, setEmail] = useState('');
@@ -24,57 +24,64 @@ const Login = ({ onSwitchToRegister }) => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1>Welcome to Reminisce</h1>
-          <p>Sign in to continue</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          {error && <div className="auth-error">{error}</div>}
-
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="Enter your email"
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="Enter your password"
-              disabled={loading}
-            />
-          </div>
-
-          <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+    <AuthLayout
+      title={
+        <>
+          Remember,
+          <br />
+          everything.
+        </>
+      }
+      subtitle="Sign in to continue to your memory companion."
+      footer={
+        <p className="auth-inline">
+          Don&apos;t have an account?
+          <button type="button" onClick={onSwitchToRegister} className="auth-link-btn">
+            Sign up
           </button>
-        </form>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit} className="auth-form-claude">
+        {error && <div className="auth-error">{error}</div>}
 
-        <div className="auth-footer">
-          <p>
-            Don't have an account?{' '}
-            <button type="button" onClick={onSwitchToRegister} className="auth-link">
-              Sign up
-            </button>
-          </p>
+        <div className="auth-field">
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            placeholder="Enter your email"
+            disabled={loading}
+            autoComplete="email"
+          />
         </div>
-      </div>
-    </div>
+
+        <div className="auth-field">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Enter your password"
+            disabled={loading}
+            autoComplete="current-password"
+          />
+        </div>
+
+        <button type="submit" className="auth-submit" disabled={loading}>
+          {loading ? 'Signing in…' : 'Continue'}
+        </button>
+
+        <p className="auth-helper">
+          By continuing, you agree to our terms and acknowledge our privacy policy.
+        </p>
+      </form>
+    </AuthLayout>
   );
 };
 

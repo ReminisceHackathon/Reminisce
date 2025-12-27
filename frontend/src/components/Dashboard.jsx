@@ -10,6 +10,197 @@ import Calendar from './Calendar';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
+// Add Reminder Button Component
+const AddReminderButton = ({ onReminderAdded, user, idToken, getAuthHeaders }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [task, setTask] = useState('');
+  const [time, setTime] = useState('');
+  const [date, setDate] = useState(() => {
+    // Default to today's date in YYYY-MM-DD format
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+  // Generate time options for dropdown
+  const generateTimeOptions = () => {
+    const options = [];
+    
+    // Add common quick options
+    options.push({ value: '', label: 'Select a time' });
+    options.push({ value: 'Today', label: 'Today' });
+    options.push({ value: 'Tomorrow', label: 'Tomorrow' });
+    
+    // Add morning times (6 AM - 12 PM)
+    for (let hour = 6; hour < 12; hour++) {
+      options.push({ value: `${hour}:00 AM`, label: `${hour}:00 AM` });
+      options.push({ value: `${hour}:30 AM`, label: `${hour}:30 AM` });
+    }
+    
+    // Add noon
+    options.push({ value: '12:00 PM', label: '12:00 PM' });
+    options.push({ value: '12:30 PM', label: '12:30 PM' });
+    
+    // Add afternoon times (1 PM - 5:30 PM)
+    for (let hour = 1; hour < 6; hour++) {
+      options.push({ value: `${hour}:00 PM`, label: `${hour}:00 PM` });
+      options.push({ value: `${hour}:30 PM`, label: `${hour}:30 PM` });
+    }
+    
+    // Add evening times (6 PM - 11:30 PM)
+    for (let hour = 6; hour < 12; hour++) {
+      options.push({ value: `${hour}:00 PM`, label: `${hour}:00 PM` });
+      options.push({ value: `${hour}:30 PM`, label: `${hour}:30 PM` });
+    }
+    
+    return options;
+  };
+
+  const timeOptions = generateTimeOptions();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!task.trim() || !time.trim()) {
+      alert('Please fill in both task and time');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const authHeaders = await getAuthHeaders();
+      
+      const response = await fetch(`${API_URL}/reminders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders,
+        },
+        body: JSON.stringify({
+          task: task.trim(),
+          time: time.trim(),
+          date: date || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        setTask('');
+        setTime('');
+        // Reset date to today
+        const today = new Date();
+        setDate(today.toISOString().split('T')[0]);
+        setShowForm(false);
+        onReminderAdded();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.detail || 'Failed to create reminder. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating reminder:', error);
+      alert('Error creating reminder. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (showForm) {
+    return (
+      <>
+        {/* Backdrop */}
+        <div 
+          className="add-reminder-backdrop"
+          onClick={() => {
+            setShowForm(false);
+            setTask('');
+            setTime('');
+            const today = new Date();
+            setDate(today.toISOString().split('T')[0]);
+          }}
+        />
+        <div className="add-reminder-form">
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="reminder-task">Task</label>
+              <input
+                id="reminder-task"
+                type="text"
+                value={task}
+                onChange={(e) => setTask(e.target.value)}
+                placeholder="e.g., Call doctor"
+                required
+                disabled={isSubmitting}
+                autoFocus
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="reminder-date">Date</label>
+              <input
+                id="reminder-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+                disabled={isSubmitting}
+                min={new Date().toISOString().split('T')[0]}
+                className="reminder-date-input"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="reminder-time">Time</label>
+              <select
+                id="reminder-time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                required
+                disabled={isSubmitting}
+                className="reminder-time-select"
+              >
+                {timeOptions.map((option, index) => (
+                  <option key={index} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-actions">
+              <button type="submit" className="submit-reminder-btn" disabled={isSubmitting}>
+                {isSubmitting ? 'Adding...' : 'Add Reminder'}
+              </button>
+              <button 
+                type="button" 
+                className="cancel-reminder-btn" 
+                onClick={() => {
+                  setShowForm(false);
+                  setTask('');
+                  setTime('');
+                  const today = new Date();
+                  setDate(today.toISOString().split('T')[0]);
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <button 
+      className="add-reminder-btn"
+      onClick={() => setShowForm(true)}
+      aria-label="Add new reminder"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M12 4V20M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+      Add Reminder
+    </button>
+  );
+};
+
 const Dashboard = () => {
   const { user, profile, idToken, logout, refreshToken } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
@@ -80,23 +271,89 @@ const Dashboard = () => {
     
     try {
       setIsLoadingReminders(true);
+      
+      // Get auth headers with timeout
+      const authHeaders = await Promise.race([
+        getAuthHeaders(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth headers timeout')), 3000)
+        )
+      ]);
+      
+      // Fetch with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      try {
+        const response = await fetch(`${API_URL}/reminders`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders,
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setReminders(data || []);
+        } else {
+          console.warn('Failed to fetch reminders:', response.status, response.statusText);
+          setReminders([]);
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          console.warn('Reminders fetch timeout - backend may not be running');
+        } else {
+          console.error('Error fetching reminders:', fetchError);
+        }
+        setReminders([]);
+      }
+    } catch (error) {
+      console.error('Error in fetchReminders:', error);
+      setReminders([]);
+    } finally {
+      setIsLoadingReminders(false);
+    }
+  };
+
+  // Toggle reminder status (completed/pending)
+  const toggleReminderStatus = async (reminderId, currentStatus) => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    
+    try {
       const authHeaders = await getAuthHeaders();
       
-      const response = await fetch(`${API_URL}/reminders`, {
+      const response = await fetch(`${API_URL}/reminders/${reminderId}/status?status=${newStatus}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           ...authHeaders,
         },
       });
-      
+
       if (response.ok) {
-        const data = await response.json();
-        setReminders(data);
+        // Update local state immediately for better UX
+        setReminders(prevReminders => 
+          prevReminders.map(r => 
+            (r.id === reminderId || (r.id === undefined && reminderId === `${r.task}-${r.time}`))
+              ? { ...r, status: newStatus }
+              : r
+          )
+        );
+        // Also refresh from server to ensure consistency
+        setTimeout(() => fetchReminders(), 500);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to update reminder status:', errorData.detail || 'Unknown error');
+        alert(errorData.detail || 'Failed to update reminder. Please try again.');
       }
     } catch (error) {
-      console.error('Error fetching reminders:', error);
-    } finally {
-      setIsLoadingReminders(false);
+      console.error('Error updating reminder status:', error);
+      alert('Error updating reminder. Please try again.');
     }
   };
 
@@ -107,8 +364,14 @@ const Dashboard = () => {
 
   // Refresh reminders periodically (every 30 seconds)
   useEffect(() => {
+    // Don't start periodic refresh if we don't have an idToken (not authenticated)
+    if (!idToken) {
+      return;
+    }
+    
     const interval = setInterval(fetchReminders, 30000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idToken]);
 
   // Load voices when voice view is active
@@ -716,6 +979,10 @@ const Dashboard = () => {
                 
                 {/* Reminders List */}
                 <div className="reminders-list-apple">
+                  {/* Add Reminder Button - Always visible */}
+                  <div className="reminders-add-button-container">
+                    <AddReminderButton onReminderAdded={fetchReminders} user={user} idToken={idToken} getAuthHeaders={getAuthHeaders} />
+                  </div>
                   {isLoadingReminders ? (
                     <div className="loading-reminders">
                       <div className="spinner"></div>
@@ -774,6 +1041,9 @@ const Dashboard = () => {
                       </div>
                       <h3>No reminders</h3>
                       <p>Tell Reminisce about upcoming events and it will remind you!</p>
+                      <div className="empty-reminders-actions">
+                        <AddReminderButton onReminderAdded={fetchReminders} user={user} idToken={idToken} getAuthHeaders={getAuthHeaders} />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -902,6 +1172,85 @@ const Dashboard = () => {
                     </button>
                   </div>
                 )}
+                
+                {/* Reminders Widget or Empty State */}
+                {!isLoadingReminders && reminders.length > 0 && reminders.filter(r => r.status !== 'completed').length > 0 ? (
+                  <div className="dashboard-reminders-widget-inline">
+                    <div className="reminders-widget-header">
+                      <h3>Your Reminders</h3>
+                      <button 
+                        className="view-all-reminders-btn"
+                        onClick={() => setActiveView('reminders')}
+                        aria-label="View all reminders"
+                      >
+                        View all
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div 
+                      className="reminders-widget-list"
+                      onClick={() => setActiveView('reminders')}
+                      role="button"
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setActiveView('reminders');
+                        }
+                      }}
+                    >
+                      {reminders
+                        .filter(r => r.status !== 'completed')
+                        .slice(0, 3) // Show max 3 reminders
+                        .map((reminder, index) => {
+                          const reminderId = reminder.id || `${reminder.task}-${reminder.time}`;
+                          return (
+                            <div key={reminderId} className="reminder-widget-item">
+                              <button
+                                className="reminder-widget-checkbox"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleReminderStatus(reminderId, reminder.status || 'pending');
+                                }}
+                                aria-label="Mark as completed"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                                </svg>
+                              </button>
+                              <div className="reminder-widget-content">
+                                <span className="reminder-widget-task">{reminder.task || reminder.text}</span>
+                                {(reminder.time || reminder.event_date) && (
+                                  <span className="reminder-widget-time">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                                      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                    </svg>
+                                    {reminder.time || new Date(reminder.event_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      {reminders.filter(r => r.status !== 'completed').length > 3 && (
+                        <div className="reminder-widget-more">
+                          +{reminders.filter(r => r.status !== 'completed').length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : !isLoadingReminders ? (
+                  <div className="no-reminders-message">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/>
+                      <path d="M16 2v4M8 2v4M3 10h18"/>
+                    </svg>
+                    <p>No reminders today</p>
+                  </div>
+                ) : null}
                 
                 {isRecording && (
                   <AudioVisualizer 

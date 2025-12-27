@@ -27,40 +27,56 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Subscribe to auth state changes
     const unsubscribe = onAuthStateChange(async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        
-        // Get ID token
-        const token = await getIdToken();
-        setIdToken(token);
+      try {
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          
+          // Get ID token
+          const token = await getIdToken();
+          setIdToken(token);
 
-        // Fetch user profile
-        try {
-          const response = await fetch(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/profile`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
+          // Fetch user profile (don't block on this - allow it to fail gracefully)
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/profile`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (response.ok) {
+              const profileData = await response.json();
+              setProfile(profileData);
             }
-          );
-
-          if (response.ok) {
-            const profileData = await response.json();
-            setProfile(profileData);
+          } catch (error) {
+            console.error('Error fetching profile:', error);
+            // Don't block loading state on profile fetch failure
           }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
+        } else {
+          setUser(null);
+          setProfile(null);
+          setIdToken(null);
         }
-      } else {
-        setUser(null);
-        setProfile(null);
-        setIdToken(null);
+      } catch (error) {
+        console.error('Error in auth state change:', error);
+      } finally {
+        // Always set loading to false, even if there's an error
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Timeout fallback: if auth state doesn't resolve within 5 seconds, stop loading
+    const timeoutId = setTimeout(() => {
+      console.warn('Auth state change timeout - stopping loading state');
+      setLoading(false);
+    }, 5000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const signIn = async (email, password) => {

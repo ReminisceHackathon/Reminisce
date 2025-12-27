@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Google Cloud
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "reminisce-hackathon")
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "reminisce-hackathon-b44cb")
 GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
 
 # Pinecone (for AI service) - with default for development

@@ -320,7 +320,8 @@ class FirebaseService:
         user_id: str,
         task: str,
         time: str,
-        source_memory_id: Optional[str] = None
+        source_memory_id: Optional[str] = None,
+        event_date: Optional[datetime] = None
     ) -> str:
         """
         Create a reminder for a user in Firestore.
@@ -330,6 +331,7 @@ class FirebaseService:
             task: What to remind the user about
             time: Time string like "2:00 PM"
             source_memory_id: Optional reference to the memory that created this
+            event_date: Optional date for the reminder (defaults to today)
             
         Returns:
             The document ID of the created reminder
@@ -342,6 +344,9 @@ class FirebaseService:
                 "created_at": firestore.SERVER_TIMESTAMP,
                 "source_memory_id": source_memory_id
             }
+            
+            if event_date:
+                reminder_data["event_date"] = event_date
             
             reminders_ref = self.db.collection("users").document(user_id).collection("reminders")
             doc_ref = reminders_ref.add(reminder_data)

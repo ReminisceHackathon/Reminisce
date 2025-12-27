@@ -8,17 +8,30 @@ export const speechToText = async (audioBlob) => {
     const response = await fetch(`${API_URL}/transcribe`, {
       method: 'POST',
       body: formData,
+      // Don't set Content-Type header - let browser set it with boundary for FormData
     });
 
     if (!response.ok) {
-      throw new Error(`Transcription error: ${response.statusText}`);
+      // Try to get error message from response
+      let errorMessage = `Transcription error: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+      } catch (e) {
+        // Couldn't parse error response, use status text
+      }
+      console.error('Transcription failed:', errorMessage);
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
     return data.text || data.transcription;
   } catch (error) {
     console.error('Speech-to-text error:', error);
-    return await speechToTextWebAPI(audioBlob);
+    // Don't fall back to Web Speech API - it can't handle blobs
+    throw error;
   }
 };
 

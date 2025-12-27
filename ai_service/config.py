@@ -13,7 +13,7 @@ PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "pcsk_3jmj3o_JB9HKQRAqt1nBmXQHS
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "reminisce-memories")
 
 # --- Google Cloud Configuration ---
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "reminisce-hackathon")
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "reminisce-hackathon-b44cb")
 GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
 
 # =============================================================================

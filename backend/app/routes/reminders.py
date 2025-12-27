@@ -56,6 +56,7 @@ class Reminder(BaseModel):
 class ReminderCreate(BaseModel):
     task: str
     time: str
+    date: Optional[str] = None  # ISO format date string (YYYY-MM-DD) or None for today
 
 
 class ReminderResponse(BaseModel):
@@ -134,10 +135,22 @@ async def create_reminder(
     """
     if current_user:
         uid = current_user.get("uid")
+        
+        # Parse date if provided (format: YYYY-MM-DD)
+        event_date = None
+        if reminder.date:
+            try:
+                # Parse YYYY-MM-DD format and set to start of day
+                event_date = datetime.strptime(reminder.date, '%Y-%m-%d')
+            except (ValueError, AttributeError):
+                # If date parsing fails, use today
+                event_date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        
         reminder_id = firebase_service.create_reminder(
             user_id=uid,
             task=reminder.task,
-            time=reminder.time
+            time=reminder.time,
+            event_date=event_date
         )
         
         logger.info(f"Created reminder for user {uid}: {reminder.task}")

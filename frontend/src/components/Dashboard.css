@@ -464,6 +464,23 @@ body {
   max-width: 900px;
   margin: 0 auto;
   width: 100%;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.view-container.reminders-view-apple {
+  opacity: 1;
+  animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .view-header {
@@ -885,6 +902,7 @@ body {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .reminders-header-apple {
@@ -893,6 +911,220 @@ body {
   align-items: flex-end;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color);
+  position: relative;
+}
+
+/* Add Reminder Button */
+.add-reminder-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--accent-blue);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-reminder-btn:hover {
+  background: var(--accent-blue-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--accent-blue-glow);
+}
+
+.add-reminder-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Add Reminder Form Backdrop */
+.add-reminder-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Add Reminder Form */
+.add-reminder-form {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px var(--shadow-md);
+  min-width: 320px;
+  max-width: 400px;
+  width: 90%;
+  z-index: 1000;
+  animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.add-reminder-form .form-group {
+  margin-bottom: 16px;
+}
+
+.add-reminder-form label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.add-reminder-form input,
+.add-reminder-form select {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.add-reminder-form input:focus,
+.add-reminder-form select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background: var(--bg-tertiary);
+  box-shadow: 0 0 0 3px var(--accent-blue-glow);
+}
+
+.add-reminder-form input::placeholder {
+  color: var(--text-muted);
+}
+
+.add-reminder-form input:disabled,
+.add-reminder-form select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reminder-date-input {
+  width: 100%;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.reminder-date-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px var(--accent-blue-glow);
+}
+
+.reminder-time-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b6b75' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+[data-theme="light"] .reminder-time-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23718096' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+.reminder-time-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 8px;
+}
+
+.add-reminder-form .form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.submit-reminder-btn {
+  flex: 1;
+  padding: 12px 20px;
+  background: var(--accent-blue);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submit-reminder-btn:hover:not(:disabled) {
+  background: var(--accent-blue-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--accent-blue-glow);
+}
+
+.submit-reminder-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cancel-reminder-btn {
+  padding: 12px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-reminder-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.cancel-reminder-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .header-date-section {
@@ -933,6 +1165,12 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 20px 32px;
+}
+
+.reminders-add-button-container {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-start;
 }
 
 .reminder-items {
@@ -1091,9 +1329,32 @@ body {
 .empty-reminders-apple p {
   font-size: 15px;
   color: var(--text-muted);
-  margin: 0;
+  margin: 0 0 24px 0;
   max-width: 280px;
   line-height: 1.5;
+}
+
+.empty-reminders-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.empty-reminders-actions .add-reminder-btn {
+  padding: 14px 28px;
+  font-size: 15px;
+}
+
+.empty-reminders-actions .add-reminder-form {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  max-width: 420px;
+  width: 90%;
+  z-index: 1000;
 }
 
 /* Loading State */
@@ -1156,6 +1417,186 @@ body {
    Welcome Screen - Claude Style
    ============================================ */
 
+/* Dashboard Reminders Widget */
+.dashboard-reminders-widget {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 20px 24px;
+  margin: 0;
+}
+
+.reminders-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.reminders-widget-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.view-all-reminders-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--accent-blue);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-all-reminders-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--accent-blue-light);
+}
+
+.reminders-widget-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.reminders-widget-list:hover {
+  opacity: 0.9;
+}
+
+.reminder-widget-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.reminder-widget-item:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-blue);
+  transform: translateX(4px);
+}
+
+.reminder-widget-checkbox {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  padding: 0;
+  background: transparent;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: var(--text-muted);
+}
+
+.reminder-widget-checkbox:hover {
+  border-color: var(--accent-blue);
+  background: var(--bg-tertiary);
+  color: var(--accent-blue);
+}
+
+.reminder-widget-checkbox:active {
+  transform: scale(0.95);
+}
+
+.reminder-widget-checkbox svg {
+  width: 14px;
+  height: 14px;
+}
+
+.reminder-widget-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0; /* Allow text truncation */
+}
+
+.reminder-widget-task {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.reminder-widget-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.reminder-widget-time svg {
+  color: var(--accent-blue);
+}
+
+.reminder-widget-more {
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--accent-blue);
+  font-weight: 500;
+}
+
+/* Inline Reminders Widget (in welcome screen) */
+.dashboard-reminders-widget-inline {
+  width: 100%;
+  max-width: 600px;
+  margin: 32px auto 0;
+  padding: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.dashboard-reminders-widget-inline .reminders-widget-header {
+  margin-bottom: 16px;
+}
+
+.dashboard-reminders-widget-inline .reminders-widget-list {
+  gap: 10px;
+}
+
+.no-reminders-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+  padding: 32px;
+  color: var(--text-muted);
+}
+
+.no-reminders-message svg {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.no-reminders-message p {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
 .messages-container {
   flex: 1;
   overflow-y: auto;
@@ -1192,7 +1633,35 @@ body {
   font-size: 18px;
   font-weight: 400;
   color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* View Reminders Button */
+.view-reminders-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
   margin-bottom: 32px;
+}
+
+.view-reminders-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-sm);
+}
+
+.view-reminders-btn svg {
+  color: var(--accent-blue);
 }
 
 .welcome-subtitle {

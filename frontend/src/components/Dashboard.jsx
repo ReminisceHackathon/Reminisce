@@ -8,9 +8,11 @@ import VoiceSettings from './VoiceSettings';
 import VoiceChat from './VoiceChat';
 import Calendar from './Calendar';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Dashboard = () => {
   const { user, profile, idToken, logout, refreshToken } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
   
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -518,6 +520,25 @@ const Dashboard = () => {
               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" fill="currentColor"/>
             </svg>
             {!sidebarCollapsed && <span>Voice</span>}
+          </button>
+
+          {/* Theme Toggle */}
+          <button 
+            className="nav-item theme-toggle" 
+            onClick={toggleTheme} 
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2"/>
+                <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+            {!sidebarCollapsed && <span>{isDark ? 'Light mode' : 'Dark mode'}</span>}
           </button>
         </nav>
 

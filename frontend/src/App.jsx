@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Dashboard from './components/Dashboard';
 import AuthWrapper from './components/AuthWrapper';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -9,28 +10,28 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '18px',
-        color: '#666'
-      }}>
-        Loading...
+      <div className="loading-screen">
+        <div className="loading-spinner"></div>
+        <p>Loading...</p>
       </div>
     );
   }
 
-  return isAuthenticated ? <Dashboard /> : <AuthWrapper />;
+  return (
+    <div className={`app-transition ${isAuthenticated ? 'dashboard-enter' : 'auth-enter'}`}>
+      {isAuthenticated ? <Dashboard /> : <AuthWrapper />}
+    </div>
+  );
 }
 
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

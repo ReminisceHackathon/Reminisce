@@ -64,6 +64,7 @@ class ReminderResponse(BaseModel):
     task: str
     time: str
     status: str
+    event_date: Optional[str] = None  # ISO format date string
 
 
 # =============================================================================
@@ -95,11 +96,21 @@ async def get_reminders(
         
         result = []
         for r in reminders:
+            # Format event_date as ISO string if present
+            event_date = r.get("event_date")
+            event_date_str = None
+            if event_date:
+                if hasattr(event_date, 'isoformat'):
+                    event_date_str = event_date.date().isoformat() if hasattr(event_date, 'date') else event_date.isoformat()
+                else:
+                    event_date_str = str(event_date)
+            
             result.append(ReminderResponse(
                 id=r.get("id"),
                 task=r.get("task", ""),
                 time=r.get("time", ""),
-                status=r.get("status", "pending")
+                status=r.get("status", "pending"),
+                event_date=event_date_str
             ))
             
             # Mark "new" as "pending" after first fetch

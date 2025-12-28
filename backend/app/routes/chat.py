@@ -83,18 +83,31 @@ def save_memories_async(
                 source_message=memory.get("source_message")
             )
             
-            # If there's a reminder date for today, create immediate reminder
+            # If there's a reminder date, create a reminder for that date
             if memory.get("reminder_date"):
                 from datetime import datetime
-                today = datetime.utcnow().date()
-                reminder_date = memory["reminder_date"].date() if memory["reminder_date"] else None
+                reminder_datetime = memory["reminder_date"]
                 
-                if reminder_date == today:
-                    firebase_service.create_reminder(
-                        user_id=user_id,
-                        task=memory["text"],
-                        time="Now"
-                    )
+                # Log what we're extracting
+                logger.info(f"Creating reminder - raw reminder_date: {reminder_datetime}, type: {type(reminder_datetime)}")
+                
+                # Format time from the reminder_date or use default
+                if isinstance(reminder_datetime, datetime):
+                    time_str = reminder_datetime.strftime("%I:%M %p")
+                    event_date = reminder_datetime
+                    logger.info(f"Parsed as datetime - date: {event_date.date()}, time: {time_str}")
+                else:
+                    time_str = "9:00 AM"
+                    event_date = reminder_datetime
+                    logger.info(f"Not a datetime, using default time")
+                
+                # Create reminder for any future date (not just today)
+                firebase_service.create_reminder(
+                    user_id=user_id,
+                    task=memory["text"],
+                    time=time_str,
+                    event_date=event_date
+                )
         
         if memories:
             logger.info(f"Saved {len(memories)} memories for user {user_id}")

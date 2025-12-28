@@ -4,7 +4,7 @@ import { useMicrophone } from '../hooks/useMicrophone';
 import { textToSpeechStream } from '../services/elevenLabsService';
 import { speechToText } from '../services/speechToTextService';
 
-const VoiceChat = ({ onClose, onMessage }) => {
+const VoiceChat = ({ onClose, onMessage, isClosing = false }) => {
   const [status, setStatus] = useState('idle'); // idle, listening, processing, speaking
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('');
@@ -180,7 +180,7 @@ const VoiceChat = ({ onClose, onMessage }) => {
   };
 
   return (
-    <div className="voice-chat-overlay">
+    <div className={`voice-chat-overlay ${isClosing ? 'closing' : ''}`}>
       {/* Background gradient animation */}
       <div className={`voice-chat-bg ${status}`}>
         <div className="gradient-orb gradient-1"></div>

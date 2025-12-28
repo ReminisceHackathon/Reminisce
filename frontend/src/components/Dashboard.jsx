@@ -259,6 +259,15 @@ const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
+  // Computed: filter reminders by selected date
+  const filteredReminders = reminders.filter(reminder => {
+    if (!reminder.event_date) return false;
+    // Parse date string without timezone conversion (YYYY-MM-DD format)
+    const [year, month, day] = reminder.event_date.split('-').map(Number);
+    const reminderDate = new Date(year, month - 1, day); // month is 0-indexed
+    return reminderDate.toDateString() === selectedDate.toDateString();
+  });
+  
   // Voice settings state
   const [voices, setVoices] = useState([]);
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
@@ -941,7 +950,7 @@ const Dashboard = () => {
                       </svg>
                     </div>
                     <div className="stat-content">
-                      <span className="stat-number">{reminders.filter(r => r.status !== 'completed').length}</span>
+                      <span className="stat-number">{filteredReminders.filter(r => r.status !== 'completed').length}</span>
                       <span className="stat-label">Active</span>
                     </div>
                   </div>
@@ -953,7 +962,7 @@ const Dashboard = () => {
                       </svg>
                     </div>
                     <div className="stat-content">
-                      <span className="stat-number">{reminders.filter(r => r.status === 'completed').length}</span>
+                      <span className="stat-number">{filteredReminders.filter(r => r.status === 'completed').length}</span>
                       <span className="stat-label">Completed</span>
                     </div>
                   </div>
@@ -988,9 +997,9 @@ const Dashboard = () => {
                       <div className="spinner"></div>
                       <p>Loading reminders...</p>
                     </div>
-                  ) : reminders.length > 0 ? (
+                  ) : filteredReminders.length > 0 ? (
                     <div className="reminder-items">
-                      {reminders.map((reminder, index) => {
+                      {filteredReminders.map((reminder, index) => {
                         const isCompleted = reminder.status === 'completed';
                         return (
                           <div 
@@ -1039,7 +1048,7 @@ const Dashboard = () => {
                           <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
-                      <h3>No reminders</h3>
+                      <h3>No reminders for this day</h3>
                       <p>Tell Reminisce about upcoming events and it will remind you!</p>
                       <div className="empty-reminders-actions">
                         <AddReminderButton onReminderAdded={fetchReminders} user={user} idToken={idToken} getAuthHeaders={getAuthHeaders} />
@@ -1173,76 +1182,105 @@ const Dashboard = () => {
                   </div>
                 )}
                 
-                {/* Reminders Widget or Empty State */}
-                {!isLoadingReminders && reminders.length > 0 && reminders.filter(r => r.status !== 'completed').length > 0 ? (
-                  <div className="dashboard-reminders-widget-inline">
-                    <div className="reminders-widget-header">
-                      <h3>Your Reminders</h3>
-                      <button 
-                        className="view-all-reminders-btn"
-                        onClick={() => setActiveView('reminders')}
-                        aria-label="View all reminders"
-                      >
-                        View all
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                    </div>
-                    <div 
-                      className="reminders-widget-list"
-                      onClick={() => setActiveView('reminders')}
-                      role="button"
-                      tabIndex={0}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setActiveView('reminders');
-                        }
-                      }}
-                    >
-                      {reminders
-                        .filter(r => r.status !== 'completed')
-                        .slice(0, 3) // Show max 3 reminders
-                        .map((reminder, index) => {
-                          const reminderId = reminder.id || `${reminder.task}-${reminder.time}`;
-                          return (
-                            <div key={reminderId} className="reminder-widget-item">
-                              <button
-                                className="reminder-widget-checkbox"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleReminderStatus(reminderId, reminder.status || 'pending');
-                                }}
-                                aria-label="Mark as completed"
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                                </svg>
-                              </button>
-                              <div className="reminder-widget-content">
-                                <span className="reminder-widget-task">{reminder.task || reminder.text}</span>
-                                {(reminder.time || reminder.event_date) && (
-                                  <span className="reminder-widget-time">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                                      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                    </svg>
-                                    {reminder.time || new Date(reminder.event_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      {reminders.filter(r => r.status !== 'completed').length > 3 && (
-                        <div className="reminder-widget-more">
-                          +{reminders.filter(r => r.status !== 'completed').length - 3} more
+                {/* Reminders Widget or Empty State - Only show TODAY's reminders */}
+                {(() => {
+                  const today = new Date();
+                  const todaysReminders = reminders.filter(r => {
+                    if (r.status === 'completed') return false;
+                    if (!r.event_date) return false;
+                    const [year, month, day] = r.event_date.split('-').map(Number);
+                    const reminderDate = new Date(year, month - 1, day);
+                    return reminderDate.toDateString() === today.toDateString();
+                  });
+                  
+                  if (!isLoadingReminders && todaysReminders.length > 0) {
+                    return (
+                      <div className="dashboard-reminders-widget-inline">
+                        <div className="reminders-widget-header">
+                          <h3>Today's Reminders</h3>
+                          <button 
+                            className="view-all-reminders-btn"
+                            onClick={() => setActiveView('reminders')}
+                            aria-label="View all reminders"
+                          >
+                            View all
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                ) : !isLoadingReminders ? (
+                        <div 
+                          className="reminders-widget-list"
+                          onClick={() => setActiveView('reminders')}
+                          role="button"
+                          tabIndex={0}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setActiveView('reminders');
+                            }
+                          }}
+                        >
+                          {todaysReminders
+                            .slice(0, 3) // Show max 3 reminders
+                            .map((reminder) => {
+                              const reminderId = reminder.id || `${reminder.task}-${reminder.time}`;
+                              // Format date for display
+                              const dateStr = reminder.event_date 
+                                ? (() => {
+                                    const [y, m, d] = reminder.event_date.split('-').map(Number);
+                                    return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                  })()
+                                : '';
+                              return (
+                                <div key={reminderId} className="reminder-widget-item">
+                                  <button
+                                    className="reminder-widget-checkbox"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleReminderStatus(reminderId, reminder.status || 'pending');
+                                    }}
+                                    aria-label="Mark as completed"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                                    </svg>
+                                  </button>
+                                  <div className="reminder-widget-content">
+                                    <span className="reminder-widget-task">{reminder.task || reminder.text}</span>
+                                    <span className="reminder-widget-time">
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                                        <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                      </svg>
+                                      {dateStr && `${dateStr} · `}{reminder.time || ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          {todaysReminders.length > 3 && (
+                            <div className="reminder-widget-more">
+                              +{todaysReminders.length - 3} more
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                {!isLoadingReminders && (() => {
+                  const today = new Date();
+                  const todaysReminders = reminders.filter(r => {
+                    if (r.status === 'completed') return false;
+                    if (!r.event_date) return false;
+                    const [year, month, day] = r.event_date.split('-').map(Number);
+                    const reminderDate = new Date(year, month - 1, day);
+                    return reminderDate.toDateString() === today.toDateString();
+                  });
+                  return todaysReminders.length === 0;
+                })() ? (
                   <div className="no-reminders-message">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <rect x="3" y="4" width="18" height="18" rx="2"/>

@@ -41,9 +41,42 @@ MONTHS = {
 }
 
 
+def parse_time(text: str) -> tuple:
+    """
+    Parse time from text like "2pm", "3:30 PM", "at 14:00".
+    Returns (hour, minute) tuple or (None, None) if not found.
+    """
+    text_lower = text.lower()
+    
+    # Match patterns like "2pm", "2 pm", "2:30pm", "2:30 pm"
+    time_match = re.search(r'(\d{1,2})(?::(\d{2}))?\s*(am|pm)', text_lower)
+    if time_match:
+        hour = int(time_match.group(1))
+        minute = int(time_match.group(2)) if time_match.group(2) else 0
+        period = time_match.group(3)
+        
+        if period == 'pm' and hour != 12:
+            hour += 12
+        elif period == 'am' and hour == 12:
+            hour = 0
+        
+        return (hour, minute)
+    
+    # Match 24-hour format like "14:00" or "at 14:00"
+    time_24_match = re.search(r'(?:at\s+)?(\d{1,2}):(\d{2})(?!\s*(am|pm))', text_lower)
+    if time_24_match:
+        hour = int(time_24_match.group(1))
+        minute = int(time_24_match.group(2))
+        if 0 <= hour <= 23:
+            return (hour, minute)
+    
+    return (None, None)
+
+
 def parse_relative_date(text: str, reference_date: Optional[datetime] = None) -> Optional[datetime]:
     """
     Parse relative date expressions like "next week", "tomorrow", "on Tuesday".
+    Also parses time if present (e.g., "tomorrow at 2pm").
     
     Args:
         text: The text containing date references
@@ -57,33 +90,42 @@ def parse_relative_date(text: str, reference_date: Optional[datetime] = None) ->
     
     text_lower = text.lower()
     
+    # Parse time from the text
+    hour, minute = parse_time(text)
+    
+    def apply_time(date_obj):
+        """Apply parsed time to a date, or use default (9 AM)."""
+        if hour is not None:
+            return date_obj.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        return date_obj.replace(hour=9, minute=0, second=0, microsecond=0)  # Default 9 AM
+    
     # Today
     if "today" in text_lower:
-        return reference_date
+        return apply_time(reference_date)
     
     # Tomorrow
     if "tomorrow" in text_lower:
-        return reference_date + timedelta(days=1)
+        return apply_time(reference_date + timedelta(days=1))
     
     # Next week (assume 7 days from now)
     if "next week" in text_lower:
-        return reference_date + timedelta(days=7)
+        return apply_time(reference_date + timedelta(days=7))
     
     # This week (assume within 7 days)
     if "this week" in text_lower:
-        return reference_date + timedelta(days=3)  # Midweek estimate
+        return apply_time(reference_date + timedelta(days=3))  # Midweek estimate
     
     # In X days
     days_match = re.search(r'in\s+(\d+)\s+days?', text_lower)
     if days_match:
         days = int(days_match.group(1))
-        return reference_date + timedelta(days=days)
+        return apply_time(reference_date + timedelta(days=days))
     
     # In X weeks
     weeks_match = re.search(r'in\s+(\d+)\s+weeks?', text_lower)
     if weeks_match:
         weeks = int(weeks_match.group(1))
-        return reference_date + timedelta(weeks=weeks)
+        return apply_time(reference_date + timedelta(weeks=weeks))
     
     # Next [weekday]
     for day_name, day_num in WEEKDAYS.items():
@@ -93,7 +135,7 @@ def parse_relative_date(text: str, reference_date: Optional[datetime] = None) ->
             if days_ahead <= 0:
                 days_ahead += 7
             days_ahead += 7  # "Next" means following week
-            return reference_date + timedelta(days=days_ahead)
+            return apply_time(reference_date + timedelta(days=days_ahead))
     
     # On [weekday] or this [weekday]
     for day_name, day_num in WEEKDAYS.items():
@@ -104,7 +146,7 @@ def parse_relative_date(text: str, reference_date: Optional[datetime] = None) ->
                 days_ahead += 7
             if days_ahead == 0:
                 days_ahead = 7  # Same day means next week
-            return reference_date + timedelta(days=days_ahead)
+            return apply_time(reference_date + timedelta(days=days_ahead))
     
     # [Month] [day] or [Month] [day]th/st/nd/rd
     for month_name, month_num in MONTHS.items():
@@ -118,7 +160,7 @@ def parse_relative_date(text: str, reference_date: Optional[datetime] = None) ->
                 # If date has passed, assume next year
                 if target_date < reference_date:
                     target_date = datetime(year + 1, month_num, day)
-                return target_date
+                return apply_time(target_date)
             except ValueError:
                 continue
     
@@ -134,8 +176,9 @@ def parse_relative_date(text: str, reference_date: Optional[datetime] = None) ->
                 year += 2000
         try:
             target_date = datetime(year, month, day)
+            target_date = apply_time(target_date)
             if target_date < reference_date:
-                target_date = datetime(year + 1, month, day)
+                target_date = apply_time(datetime(year + 1, month, day))
             return target_date
         except ValueError:
             pass
@@ -299,12 +342,8 @@ def extract_memories_from_conversation(
                 else:
                     reminder_date = event_date
             
-            # Build rich memory text
-            if people:
-                people_str = ", ".join(people)
-                memory_text = f"{event_text} (involving: {people_str})"
-            else:
-                memory_text = event_text
+            # Use clean event text (without extra metadata)
+            memory_text = event_text
             
             extracted_memories.append({
                 "text": memory_text,

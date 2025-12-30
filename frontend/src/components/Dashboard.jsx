@@ -211,6 +211,7 @@ const Dashboard = () => {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
+  const [isClosingVoiceChat, setIsClosingVoiceChat] = useState(false);
   const [activeView, setActiveView] = useState('home'); // 'home', 'chats', 'reminders'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVoiceId, setSelectedVoiceId] = useState(
@@ -705,7 +706,16 @@ const Dashboard = () => {
       sender: 'bot',
       timestamp: new Date(),
     };
-    setMessages(prev => [...prev, userMsg, botMsg]);
+    
+    // Close voice chat overlay smoothly
+    setTimeout(() => {
+      setShowVoiceChat(false);
+    }, 300);
+    
+    // Add messages with a slight delay for smooth transition
+    setTimeout(() => {
+      setMessages(prev => [...prev, userMsg, botMsg]);
+    }, 400);
   };
 
   const handleLogout = async () => {
@@ -1397,8 +1407,15 @@ const Dashboard = () => {
       {/* ChatGPT-style Voice Chat Overlay */}
       {showVoiceChat && (
         <VoiceChat
-          onClose={() => setShowVoiceChat(false)}
+          onClose={() => {
+            setIsClosingVoiceChat(true);
+            setTimeout(() => {
+              setShowVoiceChat(false);
+              setIsClosingVoiceChat(false);
+            }, 300);
+          }}
           onMessage={handleVoiceChatMessage}
+          isClosing={isClosingVoiceChat}
         />
       )}
     </div>

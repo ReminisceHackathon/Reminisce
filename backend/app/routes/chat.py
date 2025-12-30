@@ -11,7 +11,7 @@ import threading
 # Add ai_service to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
-from ai_service import ReminisceBrain
+from ai_service import ReminisceBrain, save_memory
 from app.services.firebase_service import FirebaseService
 from app.services.memory_extraction_service import extract_memories_from_conversation
 from app.config import FIREBASE_CREDENTIALS_PATH
@@ -108,6 +108,29 @@ def save_memories_async(
                     time=time_str,
                     event_date=event_date
                 )
+                
+                # IMPORTANT: Also save to Pinecone so AI can recall this reminder
+                # Format: "User has a reminder to [task] on [date] at [time]"
+                if isinstance(event_date, datetime):
+                    date_str = event_date.strftime("%B %d, %Y")
+                else:
+                    date_str = str(event_date)
+                
+                reminder_memory = f"User has a reminder to {memory['text']} on {date_str} at {time_str}"
+                try:
+                    save_memory(
+                        text=reminder_memory,
+                        user_id=user_id,
+                        metadata={
+                            "category": "reminder",
+                            "task": memory["text"],
+                            "date": date_str,
+                            "time": time_str
+                        }
+                    )
+                    logger.info(f"Saved reminder to Pinecone: {reminder_memory[:50]}...")
+                except Exception as e:
+                    logger.error(f"Failed to save reminder to Pinecone: {e}")
         
         if memories:
             logger.info(f"Saved {len(memories)} memories for user {user_id}")

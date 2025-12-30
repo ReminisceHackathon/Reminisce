@@ -421,29 +421,29 @@ const Dashboard = () => {
     setPreviewingVoiceId(voiceId);
     
     try {
-      await textToSpeechStream(
+      // Get audio URL from ElevenLabs
+      const audioUrl = await textToSpeechStream(
         'Hello! This is how I sound. I hope you find my voice pleasant and easy to listen to.',
-        () => {}, // onChunk
-        (audioUrl) => {
-          const audio = new Audio(audioUrl);
-          voicePreviewRef.current = audio;
-          audio.onended = () => {
-            setPreviewingVoiceId(null);
-            URL.revokeObjectURL(audioUrl);
-            voicePreviewRef.current = null;
-          };
-          audio.onerror = () => {
-            setPreviewingVoiceId(null);
-            voicePreviewRef.current = null;
-          };
-          audio.play();
-        },
-        (error) => {
-          console.error('Preview error:', error);
-          setPreviewingVoiceId(null);
-        },
+        null, null, null,
         voiceId
       );
+      
+      // Play audio
+      const audio = new Audio(audioUrl);
+      voicePreviewRef.current = audio;
+      
+      audio.onended = () => {
+        setPreviewingVoiceId(null);
+        URL.revokeObjectURL(audioUrl);
+        voicePreviewRef.current = null;
+      };
+      
+      audio.onerror = () => {
+        setPreviewingVoiceId(null);
+        voicePreviewRef.current = null;
+      };
+      
+      await audio.play();
     } catch (error) {
       console.error('Error previewing voice:', error);
       setPreviewingVoiceId(null);
@@ -633,39 +633,37 @@ const Dashboard = () => {
     try {
       setIsPlayingAudio(true);
       
-      const audioChunks = [];
-      await textToSpeechStream(
-        text,
-        (chunk) => {
-          audioChunks.push(chunk);
-        },
-        (audioUrl) => {
+      // Stop any currently playing audio
           if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.src = '';
           }
           
+      // Get the voice ID to use (passed, selected, localStorage, or fallback to Rachel)
+      const effectiveVoiceId = voiceId || selectedVoiceId || localStorage.getItem('reminisce_voice_id') || '21m00Tcm4TlvDq8ikWAM';
+      
+      // Get audio URL from ElevenLabs
+      const audioUrl = await textToSpeechStream(text, null, null, null, effectiveVoiceId);
+      
+      // Play audio and wait for it to finish
+      await new Promise((resolve, reject) => {
           const audio = new Audio(audioUrl);
           audioRef.current = audio;
           
           audio.onended = () => {
-            setIsPlayingAudio(false);
             URL.revokeObjectURL(audioUrl);
-          };
-          
-          audio.onerror = () => {
-            setIsPlayingAudio(false);
-            console.error('Audio playback error');
-          };
-          
-          audio.play();
-        },
-        (error) => {
-          console.error('TTS error:', error);
+          resolve();
+        };
+        
+        audio.onerror = (err) => {
+          URL.revokeObjectURL(audioUrl);
+          reject(err);
+        };
+        
+        audio.play().catch(reject);
+      });
+      
           setIsPlayingAudio(false);
-        },
-        voiceId || selectedVoiceId
-      );
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsPlayingAudio(false);
@@ -769,7 +767,7 @@ const Dashboard = () => {
             </svg>
           </button>
         </div>
-
+        
         {/* Navigation Menu - Claude Style */}
         <nav className="sidebar-nav">
           {/* New Chat */}
@@ -783,8 +781,8 @@ const Dashboard = () => {
           {/* Chats */}
           <button className={`nav-item ${activeView === 'chats' ? 'active' : ''}`} onClick={() => setActiveView('chats')} title="Chats">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             {!sidebarCollapsed && <span>Chats</span>}
           </button>
 
@@ -811,10 +809,10 @@ const Dashboard = () => {
             title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {isDark ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2"/>
                 <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
+            </svg>
             ) : (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1177,20 +1175,20 @@ const Dashboard = () => {
         )}
 
         {activeView === 'home' && (
-          <div className={`messages-container ${!hasMessages ? 'welcome-screen' : ''}`}>
-            {!hasMessages ? (
-              <div className="welcome-content">
+        <div className={`messages-container ${!hasMessages ? 'welcome-screen' : ''}`}>
+          {!hasMessages ? (
+            <div className="welcome-content">
                 <h2 className="welcome-greeting">{getGreeting()}</h2>
                 <h3 className="welcome-question">How can I help you today?</h3>
-                
-                {permissionError && (
-                  <div className="permission-error">
-                    <p>Microphone access is required. Please allow microphone permissions.</p>
-                    <button className="permission-retry-btn" onClick={requestPermission}>
-                      Grant Permission
-                    </button>
-                  </div>
-                )}
+              
+              {permissionError && (
+                <div className="permission-error">
+                  <p>Microphone access is required. Please allow microphone permissions.</p>
+                  <button className="permission-retry-btn" onClick={requestPermission}>
+                    Grant Permission
+                  </button>
+                </div>
+              )}
                 
                 {/* Reminders Widget or Empty State - Only show TODAY's reminders */}
                 {(() => {
@@ -1299,16 +1297,16 @@ const Dashboard = () => {
                     <p>No reminders today</p>
                   </div>
                 ) : null}
-                
-                {isRecording && (
-                  <AudioVisualizer 
-                    audioLevel={audioLevel} 
-                    isRecording={isRecording} 
-                    size="large"
-                  />
-                )}
-                
-                <button 
+              
+              {isRecording && (
+                <AudioVisualizer 
+                  audioLevel={audioLevel} 
+                  isRecording={isRecording} 
+                  size="large"
+                />
+              )}
+              
+              <button 
                   className="voice-chat-button"
                   onClick={() => setShowVoiceChat(true)}
                   aria-label="Start voice conversation"
@@ -1320,7 +1318,7 @@ const Dashboard = () => {
                     <div className="wave-bar"></div>
                     <div className="wave-bar"></div>
                   </div>
-                </button>
+              </button>
               
               {isProcessing && (
                 <div className="processing-indicator">
@@ -1336,51 +1334,51 @@ const Dashboard = () => {
                   <div className="message-bubble">
                     <span className="message-text">{message.text}</span>
                   </div>
-                  {message.sender === 'bot' && isPlayingAudio && message.id === messages[messages.length - 1]?.id && (
-                    <div className="audio-playing-indicator">
-                      <div className="audio-wave"></div>
-                      <span>Speaking...</span>
-                    </div>
-                  )}
+                    {message.sender === 'bot' && isPlayingAudio && message.id === messages[messages.length - 1]?.id && (
+                      <div className="audio-playing-indicator">
+                        <div className="audio-wave"></div>
+                        <span>Speaking...</span>
+                      </div>
+                    )}
                 </div>
               ))}
               {isProcessing && (
                 <div className="message bot">
-                  <div className="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                    <div className="typing-indicator">
+                      <span></span>
+                      <span></span>
+                      <span></span>
                   </div>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </>
           )}
-          </div>
+        </div>
         )}
 
         {/* Input Container - Only show on home view */}
         {activeView === 'home' && (
-          <form className="input-container" onSubmit={handleFormSubmit}>
-            {isRecording && (
-              <AudioVisualizer 
-                audioLevel={audioLevel} 
-                isRecording={isRecording} 
-                size="small"
-              />
-            )}
-            
-            <div className="input-wrapper">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Tell Reminisce..."
-                className="chat-input"
-                aria-label="Message input"
-              />
-              <button 
-                type="button" 
+        <form className="input-container" onSubmit={handleFormSubmit}>
+          {isRecording && (
+            <AudioVisualizer 
+              audioLevel={audioLevel} 
+              isRecording={isRecording} 
+              size="small"
+            />
+          )}
+          
+          <div className="input-wrapper">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Tell Reminisce..."
+              className="chat-input"
+              aria-label="Message input"
+            />
+            <button 
+              type="button" 
                 className="microphone-input-button"
                 onClick={() => setShowVoiceChat(true)}
                 aria-label="Start voice conversation"
@@ -1390,19 +1388,19 @@ const Dashboard = () => {
                   <path d="M19 10V12C19 15.87 15.87 19 12 19C8.13 19 5 15.87 5 12V10H7V12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12V10H19Z" fill="currentColor"/>
                   <path d="M11 22H13V19H11V22Z" fill="currentColor"/>
                 </svg>
-              </button>
-              <button 
-                type="submit" 
-                className="send-button" 
-                disabled={!inputValue.trim() || isProcessing}
-                aria-label="Send message"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </form>
+            </button>
+            <button 
+              type="submit" 
+              className="send-button" 
+              disabled={!inputValue.trim() || isProcessing}
+              aria-label="Send message"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </form>
         )}
       </main>
 

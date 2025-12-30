@@ -3,8 +3,10 @@ import './VoiceChat.css';
 import { useMicrophone } from '../hooks/useMicrophone';
 import { textToSpeechStream } from '../services/elevenLabsService';
 import { speechToText } from '../services/speechToTextService';
+import { useAuth } from '../contexts/AuthContext';
 
 const VoiceChat = ({ onClose, onMessage, isClosing = false }) => {
+  const { idToken } = useAuth();
   const [status, setStatus] = useState('idle'); // idle, listening, processing, speaking
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('');
@@ -87,13 +89,18 @@ const VoiceChat = ({ onClose, onMessage, isClosing = false }) => {
   const sendMessageToAPI = async (message) => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
     
+    // Build headers with auth token if available
+    const headers = { 'Content-Type': 'application/json' };
+    if (idToken) {
+      headers['Authorization'] = `Bearer ${idToken}`;
+    }
+    
     const response = await fetch(`${API_URL}/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
-        user_id: 'demo_user',
         message: message,
-        history: []
+        recent_chat_history: []
       }),
     });
 
@@ -107,35 +114,33 @@ const VoiceChat = ({ onClose, onMessage, isClosing = false }) => {
     setStatus('speaking');
     
     try {
-      await textToSpeechStream(
-        text,
-        () => {}, // chunk callback
-        (audioUrl) => {
-          const audio = new Audio(audioUrl);
-          audioRef.current = audio;
-          
-          audio.onended = () => {
-            setStatus('idle');
-            URL.revokeObjectURL(audioUrl);
-            // Auto-restart listening after response
-            setTimeout(() => {
-              if (status !== 'listening') {
-                handleStartListening();
-              }
-            }, 500);
-          };
-          
-          audio.onerror = () => {
-            setStatus('idle');
-          };
-          
-          audio.play();
-        },
-        (error) => {
-          console.error('TTS error:', error);
-          setStatus('idle');
-        }
-      );
+      // Get the audio URL from ElevenLabs
+      const audioUrl = await textToSpeechStream(text);
+      
+      // Create audio element and wait for it to finish playing
+      await new Promise((resolve, reject) => {
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          resolve();
+        };
+        
+        audio.onerror = (err) => {
+          URL.revokeObjectURL(audioUrl);
+          reject(err);
+        };
+        
+        audio.play().catch(reject);
+      });
+      
+      // Audio finished, now go back to listening
+      setStatus('idle');
+      setTimeout(() => {
+        handleStartListening();
+      }, 500);
+      
     } catch (err) {
       console.error('Playback error:', err);
       setStatus('idle');

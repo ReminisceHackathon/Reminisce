@@ -4,7 +4,6 @@
 
 Reminisce helps elderly users remember important life details, upcoming events, and daily tasks through natural conversation. Using advanced AI and voice technology, it provides a warm, patient companion that never forgets.
 
-![Reminisce Demo](demo-screenshot.png)
 
 ---
 

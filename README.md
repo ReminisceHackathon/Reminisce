@@ -1,104 +1,34 @@
-# 🧠 Reminisce
+# 🧠 Reminisce: The AI Memory Companion
+> **Winner of the [Hackathon Name] (Hopefully!)** | *Built for the AI Partner Catalyst Hackathon*
 
-**A voice-first AI memory companion for seniors.**
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tech Stack](https://img.shields.io/badge/Stack-FastAPI%20%7C%20React%20%7C%20Gemini%202.0-blue)](https://google.com)
+[![Powered By](https://img.shields.io/badge/Audio-ElevenLabs-orange)](https://elevenlabs.io)
 
-Reminisce helps elderly users remember important life details, upcoming events, and daily tasks through natural conversation. Using advanced AI and voice technology, it provides a warm, patient companion that never forgets.
+**Reminisce** is a voice-first companion designed to restore independence for seniors with early-stage memory loss. It uses **Google Gemini 2.0 Flash** for reasoning and **ElevenLabs** for an empathetic, human-like voice interface.
 
+## 🎥 Demo Video
+[![Watch the Demo](https://img.youtube.com/vi/[YOUR_VIDEO_ID_HERE](https://youtu.be/la-CrAMkCAg)/0.jpg)](https://youtu.be/la-CrAMkCAg)
 
----
-
-## 🎯 Problem
-
-Seniors often struggle with:
-- Remembering appointments, medications, and family events
-- Feeling isolated and lonely
-- Using complex technology interfaces
-
-## 💡 Solution
-
-Reminisce is a **voice-first** memory assistant that:
-- **Remembers everything** - Family details, appointments, preferences
-- **Speaks naturally** - No typing required, just talk
-- **Reminds proactively** - Never miss an important event
-- **Feels like a friend** - Warm, patient, never rushes
-
----
-
-## ✨ Features
-
-### 🎤 Voice Conversation
-Talk naturally with Reminisce. It listens, understands, and responds with a soothing voice.
-
-### 🧠 Long-Term Memory (RAG)
-Reminisce remembers details from past conversations using vector search, providing contextual responses.
-
-### 📅 Smart Reminders
-Automatically detects and creates reminders from conversation:
-> "My grandson is visiting next Tuesday at 2pm"  
-> → Reminder created automatically
-
-### 🔐 Personal & Secure
-Each user has their own memory space. Your memories stay private.
-
----
-
-## 🛠️ Tech Stack
-
-| Category | Technology |
-|----------|------------|
-| **AI/LLM** | Google Gemini 2.0 Flash |
-| **Memory (RAG)** | Pinecone Vector Database |
-| **Voice Output** | ElevenLabs Text-to-Speech |
-| **Voice Input** | Google Cloud Speech-to-Text |
-| **Auth & Database** | Firebase (Auth + Firestore) |
-| **AI Framework** | LangChain + Vertex AI |
-| **Frontend** | React + Vite |
-| **Backend** | Python + FastAPI |
-| **Cloud** | Google Cloud Platform |
-
----
+## ✨ Key Features
+- **🗣️ Zero-UI Voice Interface:** Completely hands-free interaction using Google STT and ElevenLabs.
+- **🧠 Long-Term Memory (RAG):** Uses **Vertex AI** and **Pinecone** to remember family details (e.g., "Grandson Tommy likes apple pie").
+- **⏰ Proactive Reminders:** "Cheat" Widget instantly visualizes tasks as they are spoken.
+- **👴 Accessibility First:** Custom high-contrast UI and engineered audio profiles for elderly hearing.
 
 ## 🏗️ Architecture
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ Frontend │────▶│ Backend │────▶│ AI Service │
-│ React + Vite │ │ FastAPI │ │ Gemini + RAG │
-└────────┬────────┘ └────────┬────────┘ └────────┬────────┘
-│ │ │
-▼ ▼ ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ ElevenLabs │ │ Firebase │ │ Pinecone │
-│ TTS │ │ Auth + Store │ │ Vector Memory │
-└─────────────────┘ └─────────────────┘ └─────────────────┘
+**FastAPI (Backend)** receives voice input → Transcribes via **Google Cloud** → Reasons via **Gemini 2.0 Flash** → Retrieves Context from **Pinecone** → Speaks via **ElevenLabs**.
+
+## 🚀 How to Run
+1. Clone the repo
+2. `pip install -r requirements.txt`
+3. Add your `.env` keys (Google Cloud, ElevenLabs, Pinecone)
+4. `uvicorn main:app --reload`
+
+## 🏆 Hackathon Tracks
+- **Google Cloud:** Utilized Gemini 2.0 Flash & Vertex AI embeddings.
+- **ElevenLabs:** Implemented "Voice Design" for a custom elderly persona.
+- **Social Good:** Addressing the loneliness epidemic in senior care.
 
 ---
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+
-- Python 3.9+
-- Google Cloud account
-- Firebase project
-- Pinecone account
-- ElevenLabs API key
-
-### Frontend Setup
-cd frontend
-npm install
-cp .env.example .env  # Add your API keys
-npm run dev### Backend Setup
-cd backend
-pip install -r requirements.txt
-cp .env.example .env  # Add your API keys
-python -m uvicorn app.main:app --reload --port 3000---
-
-## 👥 Team
-
-Built with ❤️ for the hackathon.
-
----
-
-## 📄 License
-
-MIT License - feel free to use and adapt for your own projects.
-
+*Made with ❤️ by Epaphras, Eniola, and Jason.*

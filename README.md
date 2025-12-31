@@ -1,5 +1,5 @@
 # 🧠 Reminisce: The AI Memory Companion
-> **Winner of the [Hackathon Name] (Hopefully!)** | *Built for the AI Partner Catalyst Hackathon*
+> **Winner of the AI Partner Catalyst Hackathon! (Hopefully!)** | *Built for the AI Partner Catalyst Hackathon*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tech Stack](https://img.shields.io/badge/Stack-FastAPI%20%7C%20React%20%7C%20Gemini%202.0-blue)](https://google.com)

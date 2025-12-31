@@ -8,7 +8,7 @@
 **Reminisce** is a voice-first companion designed to restore independence for seniors with early-stage memory loss. It uses **Google Gemini 2.0 Flash** for reasoning and **ElevenLabs** for an empathetic, human-like voice interface.
 
 ## 🎥 Demo Video
-[![Watch the Demo](https://img.youtube.com/vi/[YOUR_VIDEO_ID_HERE](https://youtu.be/la-CrAMkCAg)/0.jpg)](https://www.youtube.com/watch?v=la-CrAMkCAg)
+[![Watch the Demo](https://img.youtube.com/vi/la-CrAMkCAg](https://www.youtube.com/watch?v=la-CrAMkCAg)
 
 ## ✨ Key Features
 - **🗣️ Zero-UI Voice Interface:** Completely hands-free interaction using Google STT and ElevenLabs.

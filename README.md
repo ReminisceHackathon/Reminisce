@@ -1,5 +1,4 @@
 # 🧠 Reminisce: The AI Memory Companion
-> **Winner of the AI Partner Catalyst Hackathon! (Hopefully!)** 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tech Stack](https://img.shields.io/badge/Stack-FastAPI%20%7C%20React%20%7C%20Gemini%202.0-blue)](https://google.com)
@@ -10,25 +9,42 @@
 ## 🎥 Demo Video
 [![Watch the Demo](https://img.youtube.com/vi/la-CrAMkCAg/0.jpg)](https://www.youtube.com/watch?v=la-CrAMkCAg)
 
-## ✨ Key Features
-- **🗣️ Zero-UI Voice Interface:** Completely hands-free interaction using Google STT and ElevenLabs.
-- **🧠 Long-Term Memory (RAG):** Uses **Vertex AI** and **Pinecone** to remember family details (e.g., "Grandson Tommy likes apple pie").
-- **⏰ Proactive Reminders:** "Cheat" Widget instantly visualizes tasks as they are spoken.
-- **👴 Accessibility First:** Custom high-contrast UI and engineered audio profiles for elderly hearing.
+## Tech Stack
 
-## 🏗️ Architecture
-**FastAPI (Backend)** receives voice input → Transcribes via **Google Cloud** → Reasons via **Gemini 2.0 Flash** → Retrieves Context from **Pinecone** → Speaks via **ElevenLabs**.
+- **Backend:** FastAPI (Python)
+- **AI/LLM:** Gemini 2.0 Flash
+- **Vector DB:** Pinecone (for RAG memory storage)
+- **Voice:** ElevenLabs (custom voice synthesis)
+- **Frontend:** React
 
-## 🚀 How to Run
-1. Clone the repo
-2. `pip install -r requirements.txt`
-3. Add your `.env` keys (Google Cloud, ElevenLabs, Pinecone)
-4. `uvicorn main:app --reload`
+## Architecture
 
-## 🏆 Hackathon Tracks
-- **Google Cloud:** Utilized Gemini 2.0 Flash & Vertex AI embeddings.
-- **ElevenLabs:** Implemented "Voice Design" for a custom elderly persona.
-- **Social Good:** Addressing the loneliness epidemic in senior care.
+User speaks → ElevenLabs transcription → FastAPI receives request → Pinecone retrieves relevant memory context → Gemini generates response with full context → ElevenLabs synthesizes voice reply → Streamed back to user.
 
----
+## Why This Matters
+
+Traditional memory aids (notes, apps, calendars) require fine motor control and consistent typing — exactly what early-stage memory loss makes difficult. Reminisce prioritizes natural voice interaction so users can stay independent longer.
+
+## Local Development
+
+
+### Backend
+``` 
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+### Frontend
+```
+cd frontend
+npm install
+npm run dev
+```
+
+Required environment variables:
+- `GEMINI_API_KEY`
+- `PINECONE_API_KEY`
+- `ELEVENLABS_API_KEY`
+  
 *Made with ❤️ by Epaphras, Eniola, and Jason.*
